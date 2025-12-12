@@ -1,3 +1,4 @@
+
 # Archivos de entorno
 .env
 .env.example
@@ -23,6 +24,7 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+=======
 *.suo
 *.ntvs*
 *.njsproj
@@ -31,3 +33,4 @@ Thumbs.db
 # Dumps de base de datos
 *.sql
 *.sqlite
+

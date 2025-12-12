@@ -1,0 +1,702 @@
+:root {
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --secondary: #64748b;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --text-lighter: #94a3b8;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: all 0.2s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.background-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.1;
+  filter: blur(40px);
+}
+
+.shape-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--primary);
+  top: -200px;
+  right: -100px;
+}
+
+.shape-2 {
+  width: 300px;
+  height: 300px;
+  background: var(--success);
+  bottom: -150px;
+  left: -100px;
+}
+
+.shape-3 {
+  width: 200px;
+  height: 200px;
+  background: var(--warning);
+  top: 50%;
+  right: 20%;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--border);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+  color: white;
+}
+
+.app-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: var(--text-light);
+  font-size: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.input-container {
+  position: relative;
+}
+
+.input-container input {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: var(--transition);
+}
+
+.input-container input:hover {
+  border-color: var(--text-lighter);
+}
+
+.input-container input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-container.active input {
+  border-color: var(--primary);
+}
+
+.input-container.error input {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.input-container input:disabled {
+  background: var(--border-light);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.input-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.input-container.active .input-decoration {
+  width: calc(100% - 32px);
+}
+
+.error-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background: var(--error);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.error-message {
+  color: var(--error);
+  font-size: 14px;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.remember-me input[type="checkbox"]:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.remember-me label {
+  color: var(--text-light);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.forgot-password {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.forgot-password:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.submit-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  margin: 20px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.login-button {
+  width: 100%;
+  height: 56px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.login-button:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-button.loading {
+  background: var(--primary-light);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 32px 0;
+  color: var(--text-lighter);
+  font-size: 14px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider span {
+  padding: 0 16px;
+}
+
+.social-login {
+  margin-bottom: 24px;
+}
+
+/* Estilos para el botón de Google */
+.google-login-button {
+  width: 100%;
+  height: 56px;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.google-login-button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: var(--text-lighter);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.google-login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.google-logo {
+  width: 20px;
+  height: 20px;
+}
+
+.demo-section {
+  text-align: center;
+  margin: 32px 0;
+  padding: 20px;
+  background: var(--border-light);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.demo-text {
+  color: var(--text-light);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.demo-button {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.demo-button:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+}
+
+.demo-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.register-link {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text-light);
+  font-size: 15px;
+}
+
+.register-text {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.register-text:hover {
+  text-decoration: underline;
+}
+
+.login-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.footer-text {
+  color: var(--text-lighter);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--text-light);
+  text-decoration: none;
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.separator {
+  color: var(--text-lighter);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 24px;
+    margin: 0 16px;
+  }
+  
+  .login-title {
+    font-size: 24px;
+  }
+  
+  .login-subtitle {
+    font-size: 14px;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .input-container input {
+    height: 52px;
+    font-size: 15px;
+  }
+  
+  .login-button {
+    height: 52px;
+  }
+  
+  .google-login-button {
+    height: 52px;
+  }
+  
+  .demo-section {
+    padding: 16px;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .separator {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-container {
+    padding: 20px 16px;
+  }
+  
+  .login-title {
+    font-size: 22px;
+  }
+  
+  .logo-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .app-name {
+    font-size: 20px;
+  }
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible para accesibilidad */
+.input-container input:focus-visible,
+.login-button:focus-visible,
+.google-login-button:focus-visible,
+.demo-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+
+/* Añadir esto al CSS existente */
+
+/* Estilos para el contenedor de Google Login Button */
+.social-login {
+  margin: 32px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.social-login > div {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Personalización del botón de Google */
+.g_id_signin {
+  width: 100% !important;
+}
+
+.g_id_signin > div {
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
+/* Para el botón de Google personalizado */
+.google-button-custom {
+  width: 100%;
+  height: 56px;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+  margin: 0 auto;
+}
+
+.google-button-custom:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: var(--text-lighter);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.google-button-custom:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Mejoras responsive para el botón de Google */
+@media (max-width: 480px) {
+  .g_id_signin > div {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+  
+  .google-button-custom {
+    height: 52px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .g_id_signin > div {
+    transform: scale(0.85);
+  }
+}
+
+/* Ajustes para mensajes de error del botón de Google */
+.social-login > div > div {
+  text-align: center;
+  width: 100%;
+}
+
+.social-login > div > div > div {
+  margin-top: 8px;
+}
+
+/* Estilos para el botón de reintentar */
+.social-login button[type="button"] {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: var(--transition);
+  margin-top: 8px;
+}
+
+.social-login button[type="button"]:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* Ajustes específicos para el mensaje de autenticación */
+.social-login > div > div > div:first-child {
+  color: var(--text-light);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Asegurar que el botón de Google tenga suficiente espacio */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Ajustes para el contenedor de Google en diferentes tamaños */
+@media (min-width: 481px) {
+  .social-login > div {
+    max-width: 320px;
+  }
+}
+
+/* Mejorar visibilidad del texto de carga */
+.social-login > div > div > div {
+  color: var(--text-light) !important;
+}

@@ -9,8 +9,6 @@ client/.env
 .env.test.local
 .env.production.local
 # Dependencias
-server/node_modules
-client/node_modules
 node_modules/
 # Build
 client/dist/

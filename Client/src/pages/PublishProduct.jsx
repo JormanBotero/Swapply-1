@@ -39,6 +39,17 @@ function PublishProduct() {
     { value: 'necesita_reparacion', label: 'Necesita reparación' }
   ];
 
+  // ESTILOS INLINE GARANTIZADOS
+  const inputStyles = {
+    color: '#2d3748',
+    backgroundColor: '#ffffff',
+    border: '2px solid #e2e8f0'
+  };
+
+  const placeholderStyles = {
+    color: '#a0aec0'
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -116,6 +127,36 @@ function PublishProduct() {
 
   return (
     <div className="publish-page">
+      {/* ESTILOS EMERGENTES PARA GARANTIZAR VISIBILIDAD */}
+      <style>{`
+        .publish-container input,
+        .publish-container textarea,
+        .publish-container select {
+          color: #2d3748 !important;
+          background-color: #ffffff !important;
+          -webkit-text-fill-color: #2d3748 !important;
+        }
+        .publish-container input::placeholder,
+        .publish-container textarea::placeholder {
+          color: #a0aec0 !important;
+          -webkit-text-fill-color: #a0aec0 !important;
+          opacity: 1 !important;
+        }
+        .publish-container select option {
+          color: #2d3748 !important;
+          background-color: #ffffff !important;
+        }
+        .price-input .currency {
+          color: #718096 !important;
+        }
+        .char-count {
+          color: #718096 !important;
+        }
+        .input-hint {
+          color: #718096 !important;
+        }
+      `}</style>
+      
       <div className="publish-container">
         <header className="publish-header">
           <h1>Publicar Nuevo Producto</h1>
@@ -193,6 +234,7 @@ function PublishProduct() {
                 placeholder="Ej: iPhone 12 en perfecto estado"
                 maxLength={60}
                 required
+                style={inputStyles}
               />
             </div>
 
@@ -212,6 +254,7 @@ function PublishProduct() {
                 rows={6}
                 maxLength={2000}
                 required
+                style={inputStyles}
               />
             </div>
 
@@ -224,6 +267,7 @@ function PublishProduct() {
                   value={formData.category}
                   onChange={handleInputChange}
                   required
+                  style={inputStyles}
                 >
                   <option value="">Selecciona una categoría</option>
                   {categories.map(cat => (
@@ -241,6 +285,7 @@ function PublishProduct() {
                   name="condition"
                   value={formData.condition}
                   onChange={handleInputChange}
+                  style={inputStyles}
                 >
                   {conditions.map(cond => (
                     <option key={cond.value} value={cond.value}>
@@ -265,6 +310,7 @@ function PublishProduct() {
                     placeholder="0.00"
                     min="0"
                     step="0.01"
+                    style={inputStyles}
                   />
                 </div>
                 <p className="input-hint">
@@ -281,6 +327,7 @@ function PublishProduct() {
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="Ciudad, Estado"
+                  style={inputStyles}
                 />
               </div>
             </div>

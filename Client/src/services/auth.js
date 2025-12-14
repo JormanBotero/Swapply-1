@@ -18,8 +18,23 @@ export async function loginUser({ correo, contrasena }) {
 }
 
 export async function me() {
-  const res = await api.get('/api/auth/me')
-  return res.data
+  try {
+    const res = await api.get('/api/auth/me');
+    return res.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      // Sesión expirada o inválida
+      console.log('Sesión expirada o inválida');
+      
+      // Limpiar estado local si es necesario
+      localStorage.removeItem('user'); // Si guardas algo en localStorage
+      
+      // No lanzar error aquí, dejar que ProtectedRoute maneje la redirección
+      throw error;
+    }
+    console.error('Error fetching user:', error);
+    throw error;
+  }
 }
 
 export async function logoutUser() {

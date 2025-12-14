@@ -9,8 +9,6 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     category: '',
-    minPrice: '',
-    maxPrice: '',
     search: ''
   });
 
@@ -46,19 +44,18 @@ function Products() {
   const handleClearFilters = () => {
     setFilters({
       category: '',
-      minPrice: '',
-      maxPrice: '',
       search: ''
     });
-    setTimeout(() => fetchProducts(), 100);
+    setTimeout(fetchProducts, 100);
   };
 
   return (
     <div className="products-page">
+      {/* Header */}
       <header className="products-header">
-        <h1>Productos para Intercambiar</h1>
+        <h1>Productos para Intercambio</h1>
         <Link to="/products/publish" className="publish-btn">
-          + Publicar Producto
+          Publicar producto
         </Link>
       </header>
 
@@ -74,13 +71,13 @@ function Products() {
               onChange={handleFilterChange}
             />
             <button type="submit" className="search-btn">
-              🔍
+              Buscar
             </button>
           </div>
 
           <div className="filter-grid">
-            <select 
-              name="category" 
+            <select
+              name="category"
               value={filters.category}
               onChange={handleFilterChange}
             >
@@ -93,28 +90,12 @@ function Products() {
               <option value="otros">Otros</option>
             </select>
 
-            <input
-              type="number"
-              name="minPrice"
-              placeholder="Precio mínimo"
-              value={filters.minPrice}
-              onChange={handleFilterChange}
-            />
-
-            <input
-              type="number"
-              name="maxPrice"
-              placeholder="Precio máximo"
-              value={filters.maxPrice}
-              onChange={handleFilterChange}
-            />
-
             <button type="submit" className="apply-btn">
-              Aplicar Filtros
+              Aplicar filtros
             </button>
-            
-            <button 
-              type="button" 
+
+            <button
+              type="button"
               onClick={handleClearFilters}
               className="clear-btn"
             >
@@ -124,61 +105,64 @@ function Products() {
         </form>
       </div>
 
-      {/* Lista de productos */}
+      {/* Productos */}
       <div className="products-container">
         {loading ? (
           <div className="loading">Cargando productos...</div>
         ) : products.length === 0 ? (
           <div className="no-products">
-            <p>No hay productos disponibles</p>
+            <p>No hay productos disponibles actualmente</p>
             <Link to="/products/publish" className="publish-link">
-              ¡Sé el primero en publicar!
+              Publica el primer producto
             </Link>
           </div>
         ) : (
           <div className="products-grid">
             {products.map(product => (
-              <Link 
-                to={`/products/${product.id}`} 
+              <Link
+                to={`/products/${product.id}`}
                 key={product.id}
                 className="product-card"
               >
                 <div className="product-image">
                   {product.images && product.images[0] ? (
-                    <img 
-                      src={product.images[0]} 
+                    <img
+                      src={product.images[0]}
                       alt={product.title}
                       onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
+                        e.target.src =
+                          'https://via.placeholder.com/300x200?text=Sin+imagen';
                       }}
                     />
                   ) : (
                     <div className="no-image">Sin imagen</div>
                   )}
+
                   {product.status === 'reserved' && (
                     <span className="status-badge reserved">Reservado</span>
                   )}
+
                   {product.status === 'traded' && (
                     <span className="status-badge traded">Intercambiado</span>
                   )}
                 </div>
-                
+
                 <div className="product-info">
                   <h3>{product.title}</h3>
+
                   <p className="product-description">
-                    {product.description?.substring(0, 80)}...
+                    {product.description
+                      ? product.description.substring(0, 90) + '…'
+                      : 'Sin descripción'}
                   </p>
-                  
+
                   <div className="product-meta">
-                    <span className="price">
-                      {product.price ? `$${product.price}` : 'Gratis'}
-                    </span>
                     <span className="category">{product.category}</span>
                   </div>
-                  
+
                   <div className="product-footer">
                     <span className="owner">
-                      📍 {product.location || 'Ubicación no especificada'}
+                      {product.location || 'Ubicación no especificada'}
                     </span>
                     <span className="date">
                       {new Date(product.created_at).toLocaleDateString()}

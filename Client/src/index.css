@@ -800,7 +800,6 @@ body {
     left: 50%;
     transform: translateX(-50%);
   }
-  
   .footer-column:nth-child(2),
   .footer-column:nth-child(3),
   .footer-column:nth-child(4) {

@@ -40,7 +40,8 @@ export default function Login() {
       setIsLoading(true)
       setSubmitError('')
       await login({ correo: form.correo, contrasena: form.contrasena })
-      navigate('/dashboard', { replace: true })
+      // CAMBIA ESTA LÍNEA:
+      navigate('/products', { replace: true }) // ← De dashboard a products
     } catch (err) {
       setSubmitError(err?.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.')
     } finally {
@@ -48,7 +49,8 @@ export default function Login() {
     }
   }
 
-  const handleGoogleSuccess = () => navigate('/dashboard', { replace: true })
+  // CAMBIA ESTA FUNCIÓN TAMBIÉN:
+  const handleGoogleSuccess = () => navigate('/products', { replace: true }) // ← De dashboard a products
 
   return (
     <div className="login-page">

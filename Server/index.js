@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 
 import { initTables } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
+import productRoutes from './routes/products.routes.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 

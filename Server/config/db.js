@@ -43,9 +43,9 @@ export async function initTables() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log('✅ Tabla "users" lista');
+    console.log(' Tabla "users" lista');
 
-    // 2. Products (SIN precios)
+    // 2. Products
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -61,7 +61,7 @@ export async function initTables() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log('✅ Tabla "products" lista');
+    console.log('Tabla "products" lista');
 
     // 3. Conversations
     await pool.query(`
@@ -76,7 +76,7 @@ export async function initTables() {
         UNIQUE(user1_id, user2_id, product_id)
       );
     `);
-    console.log('✅ Tabla "conversations" lista');
+    console.log('Tabla "conversations" lista');
 
     // 4. Messages
     await pool.query(`
@@ -89,7 +89,7 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log('✅ Tabla "messages" lista');
+    console.log('Tabla "messages" lista');
 
     // 5. Email verifications
     await pool.query(`
@@ -107,7 +107,7 @@ export async function initTables() {
       CREATE INDEX IF NOT EXISTS email_verifications_email_idx
       ON email_verifications(email);
     `);
-    console.log('✅ Tabla "email_verifications" lista');
+    console.log('Tabla "email_verifications" lista');
 
     // 6. Password resets
     await pool.query(`
@@ -125,7 +125,7 @@ export async function initTables() {
       CREATE INDEX IF NOT EXISTS password_resets_email_idx
       ON password_resets(email);
     `);
-    console.log('✅ Tabla "password_resets" lista');
+    console.log('Tabla "password_resets" lista');
 
     // 7. Índices de performance
     await pool.query(`
@@ -158,9 +158,9 @@ export async function initTables() {
       ON conversations(user2_id);
     `);
 
-    console.log('🎉 Todas las tablas inicializadas correctamente');
+    console.log('¡Todas las tablas inicializadas correctamente!');
 
-    // 8. Seed data (intercambio realista)
+    // 8. Insertar datos de prueba si no hay productos
     const productsCount = await pool.query('SELECT COUNT(*) FROM products');
     if (parseInt(productsCount.rows[0].count) === 0) {
       console.log('📦 Insertando datos de prueba...');
@@ -191,11 +191,11 @@ export async function initTables() {
            ARRAY['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400'], $1, 'Querétaro', 'available');
       `, [userId]);
 
-      console.log('✅ Datos de prueba insertados');
+      console.log('Datos de prueba insertados');
     }
 
   } catch (err) {
-    console.error('❌ Error inicializando tablas:', err);
+    console.error('Error inicializando tablas:', err);
     throw err;
   }
 }

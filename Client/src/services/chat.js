@@ -1,5 +1,11 @@
-// client/src/services/chat.js
-import api from './api';
+
+// api.js
+import axios from 'axios';
+
+export default axios.create({
+  baseURL: 'http://localhost:3000',
+  withCredentials: true,
+});
 
 // Obtener todas las conversaciones del usuario
 export async function getConversations() {

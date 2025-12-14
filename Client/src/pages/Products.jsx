@@ -55,7 +55,7 @@ function Products() {
       <header className="products-header">
         <h1>Productos para Intercambio</h1>
         <Link to="/products/publish" className="publish-btn">
-          Publicar producto
+          + Publicar producto
         </Link>
       </header>
 
@@ -71,7 +71,7 @@ function Products() {
               onChange={handleFilterChange}
             />
             <button type="submit" className="search-btn">
-              Buscar
+              🔍
             </button>
           </div>
 
@@ -162,7 +162,7 @@ function Products() {
 
                   <div className="product-footer">
                     <span className="owner">
-                      {product.location || 'Ubicación no especificada'}
+                      📍 {product.location || 'Ubicación no especificada'}
                     </span>
                     <span className="date">
                       {new Date(product.created_at).toLocaleDateString()}

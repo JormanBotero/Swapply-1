@@ -1,9 +1,15 @@
-
+// services/products.js - VERSIÓN PARA COOKIES
 import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// ¡IMPORTANTE! Usar withCredentials para cookies
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  withCredentials: true,
+  baseURL: API_URL,
+  withCredentials: true, // ← ESTO ES CRÍTICO
 });
+
+// ¡NO usar interceptor de headers! El token está en cookies
 
 // Obtener todos los productos
 export async function getProducts(filters = {}) {
@@ -19,7 +25,6 @@ export async function getProducts(filters = {}) {
     return response.data;
   } catch (error) {
     console.error('Error fetching products:', error);
-    // Retornar array vacío en caso de error para que la UI funcione
     return [];
   }
 }
@@ -38,21 +43,13 @@ export async function getProductById(id) {
 // Crear un nuevo producto
 export async function createProduct(productData) {
   try {
+    console.log('📤 Enviando producto a:', '/api/products');
     const response = await api.post('/api/products', productData);
+    console.log('✅ Producto creado:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error creating product:', error);
-    throw error;
-  }
-}
-
-// Mostrar interés en un producto
-export async function expressInterest(productId) {
-  try {
-    const response = await api.post(`/api/products/${productId}/interest`);
-    return response.data;
-  } catch (error) {
-    console.error('Error expressing interest:', error);
+    console.error('❌ Error creating product:', error);
+    console.error('Detalles:', error.response?.data);
     throw error;
   }
 }

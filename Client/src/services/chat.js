@@ -1,24 +1,26 @@
-
-// api.js
+// services/chat.js - VERSIÓN PARA COOKIES
 import axios from 'axios';
 
-export default axios.create({
-  baseURL: 'http://localhost:3000',
-  withCredentials: true,
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// Usar withCredentials para cookies
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // ← COOKIES
 });
 
-// Obtener todas las conversaciones del usuario
+// Obtener conversaciones
 export async function getConversations() {
   try {
     const response = await api.get('/api/chat/conversations');
     return response.data;
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    return []; // Retornar array vacío en caso de error
+    return [];
   }
 }
 
-// Obtener mensajes de una conversación
+// Obtener mensajes
 export async function getMessages(conversationId) {
   try {
     const response = await api.get(`/api/chat/conversations/${conversationId}/messages`);
@@ -29,7 +31,7 @@ export async function getMessages(conversationId) {
   }
 }
 
-// Enviar un mensaje
+// Enviar mensaje
 export async function sendMessage(conversationId, content) {
   try {
     const response = await api.post('/api/chat/messages', {
@@ -42,3 +44,18 @@ export async function sendMessage(conversationId, content) {
     throw error;
   }
 }
+
+// Mostrar interés en producto
+export async function expressInterest(productId) {
+  try {
+    console.log(`🤝 Mostrando interés en producto: ${productId}`);
+    const response = await api.post(`/api/products/${productId}/interest`);
+    console.log('✅ Interés registrado:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error expresando interés:', error);
+    throw error;
+  }
+}
+
+export { api }

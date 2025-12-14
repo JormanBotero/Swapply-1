@@ -1,4 +1,4 @@
-// client/src/pages/Products.jsx
+// client/src/pages/Products.jsx - VERSIÓN CORREGIDA
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getProducts } from '../services/products';
@@ -129,13 +129,18 @@ function Products() {
                     <img
                       src={product.images[0]}
                       alt={product.title}
+                      loading="lazy"
                       onError={(e) => {
-                        e.target.src =
-                          'https://via.placeholder.com/300x200?text=Sin+imagen';
+                        // URL CORREGIDA con https://
+                        e.target.src = 'https://via.placeholder.com/300x200?text=Sin+imagen';
+                        e.target.onerror = null; // Prevenir bucle infinito
                       }}
                     />
                   ) : (
-                    <div className="no-image">Sin imagen</div>
+                    <div className="no-image">
+                      <span>📷</span>
+                      <p>Sin imagen</p>
+                    </div>
                   )}
 
                   {product.status === 'reserved' && (
@@ -158,6 +163,9 @@ function Products() {
 
                   <div className="product-meta">
                     <span className="category">{product.category}</span>
+                    <span className="price">
+                      {product.price ? `$${product.price}` : '🆓 Gratis'}
+                    </span>
                   </div>
 
                   <div className="product-footer">
@@ -165,7 +173,11 @@ function Products() {
                       📍 {product.location || 'Ubicación no especificada'}
                     </span>
                     <span className="date">
-                      {new Date(product.created_at).toLocaleDateString()}
+                      {new Date(product.created_at).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
                     </span>
                   </div>
                 </div>

@@ -1,7 +1,10 @@
 // client/src/pages/ProductDetail.jsx
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getProductById, expressInterest } from '../services/products';
+import { getProductById } from '../services/products';
+import { expressInterest } from '../services/chat';
+
+
 import { me } from '../services/auth';
 import { initSocket, notifyProductInterest } from '../services/socket';
 import './ProductDetail.css';

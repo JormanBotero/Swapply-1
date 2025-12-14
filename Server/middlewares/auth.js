@@ -1,4 +1,4 @@
-// server/middlewares/auth.js
+// server/middlewares/auth.js - VERSIÓN CORREGIDA
 import { verifyToken } from '../services/jwt.js';
 import { findById } from '../models/User.js';
 
@@ -7,9 +7,23 @@ const COOKIE_NAME = 'swapply_token';
 // Middleware para requerir autenticación
 export const requireAuth = async (req, res, next) => {
   try {
-    const token = req.cookies?.[COOKIE_NAME];
+    let token;
+    
+    // 1. PRIMERO: Intentar obtener token de HEADERS (Authorization: Bearer ...)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+      console.log('Token obtenido de headers');
+    }
+    
+    // 2. SEGUNDO: Si no hay en headers, intentar de COOKIES
+    if (!token && req.cookies?.[COOKIE_NAME]) {
+      token = req.cookies[COOKIE_NAME];
+      console.log('Token obtenido de cookies');
+    }
     
     if (!token) {
+      console.log('No se encontró token ni en headers ni en cookies');
       return res.status(401).json({ message: 'No autenticado' });
     }
     
@@ -30,13 +44,7 @@ export const requireAuth = async (req, res, next) => {
     req.user = user;
     req.userId = user.id;
     
-    // Verificar si el token está a punto de expirar (menos de 24 horas)
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && (payload.exp - now) < 24 * 60 * 60) {
-      // El token se refresca automáticamente en cada request
-      // gracias a que ya está en la cookie con maxAge de 7 días
-      console.log(`Token del usuario ${user.id} se refrescará pronto`);
-    }
+    console.log(`Usuario autenticado: ${user.id} (${user.email})`);
     
     next();
   } catch (error) {
@@ -62,7 +70,18 @@ export const requireAuth = async (req, res, next) => {
 // Middleware opcional (para rutas que pueden ser públicas o privadas)
 export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.cookies?.[COOKIE_NAME];
+    let token;
+    
+    // Intentar de headers primero
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+    
+    // Si no, intentar de cookies
+    if (!token && req.cookies?.[COOKIE_NAME]) {
+      token = req.cookies[COOKIE_NAME];
+    }
     
     if (token) {
       const payload = verifyToken(token);

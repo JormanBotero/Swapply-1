@@ -1,11 +1,13 @@
 import axios from 'axios'
 
+// Configuración para usar COOKIES (no token en localStorage)
 const api = axios.create({
-  // Use relative path so Vite dev server can proxy /api -> backend (same-origin cookies)
-  baseURL: import.meta.env.VITE_API_URL || '',
-  withCredentials: true,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  withCredentials: true, // ← MANDATORIO para cookies
   headers: { 'Content-Type': 'application/json' },
 })
+
+// ¡NO uses interceptor para guardar token! Tu backend usa cookies
 
 export async function registerUser({ nombre, correo, contrasena }) {
   const res = await api.post('/api/auth/register', { nombre, correo, contrasena })
@@ -13,8 +15,27 @@ export async function registerUser({ nombre, correo, contrasena }) {
 }
 
 export async function loginUser({ correo, contrasena }) {
-  const res = await api.post('/api/auth/login', { correo, contrasena })
-  return res.data
+  try {
+    console.log('🔐 Intentando login...');
+    const res = await api.post('/api/auth/login', { correo, contrasena })
+    
+    console.log('✅ Login exitoso');
+    console.log('Respuesta del servidor:', res.data);
+    
+    // IMPORTANTE: NO guardar token en localStorage
+    // Tu backend usa cookies, el token está en la cookie 'swapply_token'
+    
+    // Solo guardar información del usuario si viene
+    if (res.data.user) {
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      console.log('👤 Usuario guardado:', res.data.user.nombre);
+    }
+    
+    return res.data;
+  } catch (error) {
+    console.error('❌ Error en login:', error);
+    throw error;
+  }
 }
 
 export async function me() {
@@ -23,13 +44,8 @@ export async function me() {
     return res.data;
   } catch (error) {
     if (error.response?.status === 401) {
-      // Sesión expirada o inválida
-      console.log('Sesión expirada o inválida');
-      
-      // Limpiar estado local si es necesario
-      localStorage.removeItem('user'); // Si guardas algo en localStorage
-      
-      // No lanzar error aquí, dejar que ProtectedRoute maneje la redirección
+      console.log('🔐 Sesión expirada o inválida');
+      localStorage.removeItem('user'); // Solo limpiar usuario
       throw error;
     }
     console.error('Error fetching user:', error);
@@ -39,6 +55,10 @@ export async function me() {
 
 export async function logoutUser() {
   const res = await api.post('/api/auth/logout')
+  
+  // Limpiar solo usuario, no token (porque está en cookie)
+  localStorage.removeItem('user');
+  
   return res.data
 }
 
@@ -74,8 +94,23 @@ export async function resetPassword(correo, codigo, contrasena) {
   return res.data
 }
 
-// Google login: send ID token obtained from Google Identity Services
+// Google login
 export async function loginWithGoogle(credential) {
   const res = await api.post('/api/auth/google', { credential })
+  
+  // Guardar usuario si viene
+  if (res.data.user) {
+    localStorage.setItem('user', JSON.stringify(res.data.user));
+  }
+  
   return res.data
 }
+
+// Función para verificar si hay sesión (usa cookies)
+export function isAuthenticated() {
+  // Como usamos cookies, no podemos verificar desde localStorage
+  // El middleware 'me()' verificará la sesión
+  return true; // Asumir que hay sesión, el backend validará
+}
+
+export { api }

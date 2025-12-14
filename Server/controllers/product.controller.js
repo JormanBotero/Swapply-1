@@ -1,13 +1,6 @@
-// server/controllers/product.controller.js
+// server/controllers/product.controller.js - VERSIÓN CORREGIDA
 import * as ProductModel from '../models/Product.js';
 import * as ConversationModel from '../models/Conversation.js';
-
-// Middleware temporal para simular autenticación
-const getCurrentUserId = (req) => {
-  // TEMPORAL: Esto debería venir de JWT o sesión
-  // Por ahora, simula un usuario con ID 1
-  return 1;
-};
 
 // Obtener todos los productos
 export const getProducts = async (req, res) => {
@@ -41,7 +34,8 @@ export const getProductById = async (req, res) => {
 // Crear un nuevo producto
 export const createProduct = async (req, res) => {
   try {
-    const userId = getCurrentUserId(req);
+    // USAMOS req.user.id DEL MIDDLEWARE DE AUTENTICACIÓN
+    const userId = req.user.id;
     
     // Validar datos requeridos
     const { title, description, category } = req.body;
@@ -73,7 +67,8 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = getCurrentUserId(req);
+    // USAMOS req.user.id DEL MIDDLEWARE DE AUTENTICACIÓN
+    const userId = req.user.id;
     
     // Verificar que el producto existe
     const product = await ProductModel.findProductById(id);
@@ -112,7 +107,8 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = getCurrentUserId(req);
+    // USAMOS req.user.id DEL MIDDLEWARE DE AUTENTICACIÓN
+    const userId = req.user.id;
     
     const deleted = await ProductModel.deleteProduct(id, userId);
     
@@ -131,7 +127,10 @@ export const deleteProduct = async (req, res) => {
 export const expressInterest = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = getCurrentUserId(req);
+    // USAMOS req.user.id DEL MIDDLEWARE DE AUTENTICACIÓN
+    const userId = req.user.id;
+    
+    console.log('Usuario mostrando interés:', userId); // Para debugging
     
     // Obtener el producto
     const product = await ProductModel.findProductById(id);

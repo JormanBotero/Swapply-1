@@ -1,6 +1,6 @@
 // server/controllers/chat.controller.js
 import * as ConversationModel from '../models/Conversation.js';
-import * as MessageModel from '../models/Message.js';
+import * as MessageModel from '../models/message.js';
 
 // Obtener todas las conversaciones del usuario
 export const getConversations = async (req, res) => {

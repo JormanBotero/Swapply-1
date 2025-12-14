@@ -24,12 +24,12 @@ export async function query(text, params) {
   }
 }
 
-// Crear tablas optimizadas
+// Inicialización de tablas
 export async function initTables() {
   try {
     console.log('🔄 Inicializando tablas de base de datos...');
 
-    // 1. Tabla users - optimizada
+    // 1. Users
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -45,7 +45,7 @@ export async function initTables() {
     `);
     console.log('✅ Tabla "users" lista');
 
-    // 2. Tabla products - ¡FALTABA ESTA!
+    // 2. Products (SIN precios)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -53,7 +53,6 @@ export async function initTables() {
         description TEXT NOT NULL,
         category VARCHAR(100) NOT NULL,
         condition VARCHAR(50) DEFAULT 'nuevo',
-        price DECIMAL(10,2) DEFAULT 0,
         images TEXT[] DEFAULT '{}',
         owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         location VARCHAR(200),
@@ -64,7 +63,7 @@ export async function initTables() {
     `);
     console.log('✅ Tabla "products" lista');
 
-    // 3. Tabla conversations - para el chat
+    // 3. Conversations
     await pool.query(`
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
@@ -79,7 +78,7 @@ export async function initTables() {
     `);
     console.log('✅ Tabla "conversations" lista');
 
-    // 4. Tabla messages - para los mensajes del chat
+    // 4. Messages
     await pool.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
@@ -92,7 +91,7 @@ export async function initTables() {
     `);
     console.log('✅ Tabla "messages" lista');
 
-    // 5. Tabla email_verifications - con verdadero UPSERT
+    // 5. Email verifications
     await pool.query(`
       CREATE TABLE IF NOT EXISTS email_verifications (
         id SERIAL PRIMARY KEY,
@@ -103,13 +102,14 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS email_verifications_email_idx 
+      CREATE INDEX IF NOT EXISTS email_verifications_email_idx
       ON email_verifications(email);
     `);
     console.log('✅ Tabla "email_verifications" lista');
 
-    // 6. Tabla password_resets - optimizada
+    // 6. Password resets
     await pool.query(`
       CREATE TABLE IF NOT EXISTS password_resets (
         id SERIAL PRIMARY KEY,
@@ -120,81 +120,82 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS password_resets_email_idx 
+      CREATE INDEX IF NOT EXISTS password_resets_email_idx
       ON password_resets(email);
     `);
     console.log('✅ Tabla "password_resets" lista');
 
-    // 7. Crear índices para mejor performance
+    // 7. Índices de performance
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_category_idx 
+      CREATE INDEX IF NOT EXISTS products_category_idx
       ON products(category);
     `);
-    
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_status_idx 
+      CREATE INDEX IF NOT EXISTS products_status_idx
       ON products(status);
     `);
-    
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_owner_id_idx 
+      CREATE INDEX IF NOT EXISTS products_owner_id_idx
       ON products(owner_id);
     `);
-    
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS messages_conversation_id_idx 
+      CREATE INDEX IF NOT EXISTS messages_conversation_id_idx
       ON messages(conversation_id);
     `);
-    
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS conversations_user1_id_idx 
+      CREATE INDEX IF NOT EXISTS conversations_user1_id_idx
       ON conversations(user1_id);
     `);
-    
+
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS conversations_user2_id_idx 
+      CREATE INDEX IF NOT EXISTS conversations_user2_id_idx
       ON conversations(user2_id);
     `);
 
-    console.log('🎉 ¡Todas las tablas inicializadas correctamente!');
+    console.log('🎉 Todas las tablas inicializadas correctamente');
 
-    // 8. Insertar datos de prueba si no hay productos
+    // 8. Seed data (intercambio realista)
     const productsCount = await pool.query('SELECT COUNT(*) FROM products');
     if (parseInt(productsCount.rows[0].count) === 0) {
       console.log('📦 Insertando datos de prueba...');
-      
-      // Asegurarse de que exista al menos un usuario
+
       const usersCount = await pool.query('SELECT COUNT(*) FROM users');
       if (parseInt(usersCount.rows[0].count) === 0) {
         await pool.query(`
-          INSERT INTO users (nombre, correo, password_hash, created_at)
-          VALUES ('Usuario Demo', 'demo@swapply.com', '$2b$10$demoHashForTesting', now())
+          INSERT INTO users (nombre, correo, password_hash)
+          VALUES ('Usuario Demo', 'demo@swapply.com', '$2b$10$demoHash')
           ON CONFLICT (correo) DO NOTHING;
         `);
       }
-      
-      // Obtener el primer usuario
+
       const userResult = await pool.query('SELECT id FROM users LIMIT 1');
-      const userId = userResult.rows[0]?.id || 1;
-      
-      // Insertar productos de prueba
+      const userId = userResult.rows[0].id;
+
       await pool.query(`
-        INSERT INTO products (title, description, category, condition, price, images, owner_id, location, status) 
-        VALUES 
-          ('iPhone 12 Pro 128GB', 'iPhone en perfecto estado, con cargador y funda original. Color plata.', 'electronica', 'como_nuevo', 450, ARRAY['https://images.unsplash.com/photo-1607936854279-55e8a4c64888?w=400'], $1, 'Ciudad de México', 'available'),
-          ('Libro: Cien años de soledad', 'Edición especial, apenas leído una vez. Perfecto estado.', 'libros', 'como_nuevo', 25, ARRAY['https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400'], $1, 'Guadalajara', 'available'),
-          ('Bicicleta de montaña Trek', 'Tamaño M, recién revisada. Ideal para rutas de montaña.', 'deportes', 'bueno', 1200, ARRAY['https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400'], $1, 'Monterrey', 'available'),
-          ('Silla gamer ergonómica', 'Con soporte lumbar y reposabrazos ajustables. Color negro.', 'hogar', 'como_nuevo', 180, ARRAY['https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400'], $1, 'Puebla', 'available'),
-          ('Nintendo Switch OLED', 'Incluye 2 controles y juego Mario Kart. Poco uso.', 'electronica', 'como_nuevo', 320, ARRAY['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400'], $1, 'Querétaro', 'available')
-        ON CONFLICT DO NOTHING;
+        INSERT INTO products
+          (title, description, category, condition, images, owner_id, location, status)
+        VALUES
+          ('iPhone 12 Pro', 'En excelente estado, se busca intercambiar por Android gama alta.', 'electronica', 'como_nuevo',
+           ARRAY['https://images.unsplash.com/photo-1607936854279-55e8a4c64888?w=400'], $1, 'Ciudad de México', 'available'),
+
+          ('Bicicleta de montaña Trek', 'Ideal para rutas de montaña, abierta a intercambios por equipo deportivo.', 'deportes', 'bueno',
+           ARRAY['https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400'], $1, 'Monterrey', 'available'),
+
+          ('Nintendo Switch OLED', 'Poco uso, busco intercambiar por consola retro o accesorios gaming.', 'electronica', 'como_nuevo',
+           ARRAY['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400'], $1, 'Querétaro', 'available');
       `, [userId]);
-      
+
       console.log('✅ Datos de prueba insertados');
     }
-    
+
   } catch (err) {
-    console.error("❌ Error inicializando tablas:", err);
+    console.error('❌ Error inicializando tablas:', err);
     throw err;
   }
 }

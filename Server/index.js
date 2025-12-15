@@ -1,4 +1,4 @@
-// server/index.js - Socket.IO AUTENTICADO (PRODUCCIÓN)
+// server/index.js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -15,17 +15,29 @@ import * as ConversationModel from './models/Conversation.js';
 import * as MessageModel from './models/message.js';
 
 const app = express();
+
+/**
+ * =====================================================
+ *  CRÍTICO PARA PRODUCCIÓN (Render / HTTPS / Cookies)
+ * =====================================================
+ */
+app.set('trust proxy', 1); // ← SIN ESTO, LAS COOKIES SECURE NO FUNCIONAN
+
 const httpServer = createServer(app);
 
-// ================== SOCKET.IO ==================
+/**
+ * =====================================================
+ *  SOCKET.IO CONFIGURADO CON AUTENTICACIÓN POR COOKIE
+ * =====================================================
+ */
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.CLIENT_ORIGIN,
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
-// --------- AUTENTICACIÓN DEL SOCKET (JWT) ---------
+// --------- AUTENTICACIÓN SOCKET.IO (JWT EN COOKIE) ---------
 io.use((socket, next) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie;
@@ -47,7 +59,7 @@ io.use((socket, next) => {
 
     next();
   } catch (err) {
-    next(new Error('Unauthorized socket'));
+    return next(new Error('Unauthorized socket'));
   }
 });
 
@@ -86,7 +98,7 @@ io.on('connection', (socket) => {
     const message = await MessageModel.createMessage({
       conversation_id: conversationId,
       sender_id: socket.userId,
-      content
+      content,
     });
 
     io.to(`chat_${conversationId}`).emit('new-message', message);
@@ -95,7 +107,7 @@ io.on('connection', (socket) => {
   socket.on('interest-in-product', ({ productId, productOwnerId }) => {
     io.to(`user_${productOwnerId}`).emit('new-interest-notification', {
       productId,
-      fromUserId: socket.userId
+      fromUserId: socket.userId,
     });
   });
 
@@ -104,26 +116,41 @@ io.on('connection', (socket) => {
   });
 });
 
-// ================== EXPRESS ==================
+/**
+ * =====================================================
+ *  EXPRESS MIDDLEWARES
+ * =====================================================
+ */
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN,
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(cookieParser());
 
+/**
+ * =====================================================
+ *  ROUTES
+ * =====================================================
+ */
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/chat', chatRoutes);
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
 
-// ================== START ==================
+/**
+ * =====================================================
+ *  START SERVER
+ * =====================================================
+ */
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('Socket.IO seguro activo');
+  console.log('Socket.IO autenticado activo');
 });

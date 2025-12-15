@@ -6,7 +6,7 @@ import './Register.css'
 import { requestEmailVerification, verifyEmailVerification } from '../services/auth'
 
 export default function Register() {
-  const [form, setForm] = useState({ nombre: '', correo: '', contrasena: '', contrasena2: '' })
+  const [form, setForm] = useState({ nombre: '', correo: '', contrasena: '', contrasena2: '', codigo: '' })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [emailStatus, setEmailStatus] = useState({ sent: false, verified: false, loading: false, message: '' })
@@ -16,18 +16,51 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm((f) => ({ ...f, [name]: value }))
+
+    // Validaciones en tiempo real
+    if (name === 'contrasena') validatePassword(value)
+    if (name === 'contrasena2') {
+      if (value !== form.contrasena) {
+        setErrors((e) => ({ ...e, contrasena2: 'Las contraseñas no coinciden' }))
+      } else {
+        setErrors((e) => ({ ...e, contrasena2: '' }))
+      }
+    }
+  }
+
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/
+    if (!regex.test(password)) {
+      setErrors((e) => ({
+        ...e,
+        contrasena: 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y un carácter especial'
+      }))
+    } else {
+      setErrors((e) => ({ ...e, contrasena: '' }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const newErrors = {}
+
     if (!form.nombre.trim()) newErrors.nombre = 'Ingresa un nombre'
     if (!form.correo.trim()) newErrors.correo = 'Ingresa un correo'
     if (!form.contrasena) newErrors.contrasena = 'Ingresa una contraseña'
     if (form.contrasena !== form.contrasena2) newErrors.contrasena2 = 'Las contraseñas no coinciden'
     if (!emailStatus.verified) newErrors.correo = newErrors.correo || 'Verifica tu correo antes de registrarte'
+
+    // Validación de contraseña final
+    if (form.contrasena) {
+      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/
+      if (!regex.test(form.contrasena)) {
+        newErrors.contrasena = 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y un carácter especial'
+      }
+    }
+
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
+
     try {
       setSubmitError('')
       await register({ nombre: form.nombre, correo: form.correo, contrasena: form.contrasena })

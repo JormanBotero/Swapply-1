@@ -1,36 +1,46 @@
-// Server/config/db.js
+import dotenv from 'dotenv';
+dotenv.config();
+
 import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Test de conexión
-pool.on('connect', () => {
-  console.log('🔗 Conexión a PostgreSQL establecida');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ Error en conexión PostgreSQL:', err);
-});
+pool.on('connect', () => console.log('🔗 Conexión a PostgreSQL establecida'));
+pool.on('error', (err) => console.error('❌ Error en conexión PostgreSQL:', err));
 
 export async function query(text, params) {
   try {
     return await pool.query(text, params);
   } catch (error) {
-    console.error('Error en query:', { text, params, error: error.message });
+    console.error('❌ Error en query:', { text, params, error: error.message });
     throw error;
   }
 }
 
-// Inicialización de tablas
 export async function initTables() {
   try {
     console.log('🔄 Inicializando tablas de base de datos...');
 
-    // 1. Users
-    await pool.query(`
+    // Función para actualizar updated_at
+    await query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `);
+
+    // ----------------------------
+    // Tabla users
+    await query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
@@ -43,10 +53,23 @@ export async function initTables() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log(' Tabla "users" lista');
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at'
+        ) THEN
+          CREATE TRIGGER update_users_updated_at
+          BEFORE UPDATE ON users
+          FOR EACH ROW
+          EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END$$;
+    `);
 
-    // 2. Products
-    await pool.query(`
+    // ----------------------------
+    // Tabla products
+    await query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
@@ -61,10 +84,23 @@ export async function initTables() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log('Tabla "products" lista');
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_products_updated_at'
+        ) THEN
+          CREATE TRIGGER update_products_updated_at
+          BEFORE UPDATE ON products
+          FOR EACH ROW
+          EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END$$;
+    `);
 
-    // 3. Conversations
-    await pool.query(`
+    // ----------------------------
+    // Tabla conversations
+    await query(`
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
         user1_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -76,10 +112,23 @@ export async function initTables() {
         UNIQUE(user1_id, user2_id, product_id)
       );
     `);
-    console.log('Tabla "conversations" lista');
+    await query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_conversations_updated_at'
+        ) THEN
+          CREATE TRIGGER update_conversations_updated_at
+          BEFORE UPDATE ON conversations
+          FOR EACH ROW
+          EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END$$;
+    `);
 
-    // 4. Messages
-    await pool.query(`
+    // ----------------------------
+    // Tabla messages
+    await query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -89,10 +138,11 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
-    console.log('Tabla "messages" lista');
+    await query(`CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages(conversation_id);`);
 
-    // 5. Email verifications
-    await pool.query(`
+    // ----------------------------
+    // Tabla email_verifications
+    await query(`
       CREATE TABLE IF NOT EXISTS email_verifications (
         id SERIAL PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
@@ -102,15 +152,11 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
+    await query(`CREATE INDEX IF NOT EXISTS email_verifications_email_idx ON email_verifications(email);`);
 
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS email_verifications_email_idx
-      ON email_verifications(email);
-    `);
-    console.log('Tabla "email_verifications" lista');
-
-    // 6. Password resets
-    await pool.query(`
+    // ----------------------------
+    // Tabla password_resets
+    await query(`
       CREATE TABLE IF NOT EXISTS password_resets (
         id SERIAL PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
@@ -120,82 +166,19 @@ export async function initTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
     `);
+    await query(`CREATE INDEX IF NOT EXISTS password_resets_email_idx ON password_resets(email);`);
 
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS password_resets_email_idx
-      ON password_resets(email);
-    `);
-    console.log('Tabla "password_resets" lista');
+    // ----------------------------
+    // Índices de performance
+    await query(`CREATE INDEX IF NOT EXISTS products_category_idx ON products(category);`);
+    await query(`CREATE INDEX IF NOT EXISTS products_status_idx ON products(status);`);
+    await query(`CREATE INDEX IF NOT EXISTS products_owner_id_idx ON products(owner_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS conversations_user1_id_idx ON conversations(user1_id);`);
+    await query(`CREATE INDEX IF NOT EXISTS conversations_user2_id_idx ON conversations(user2_id);`);
 
-    // 7. Índices de performance
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_category_idx
-      ON products(category);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_status_idx
-      ON products(status);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS products_owner_id_idx
-      ON products(owner_id);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS messages_conversation_id_idx
-      ON messages(conversation_id);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS conversations_user1_id_idx
-      ON conversations(user1_id);
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS conversations_user2_id_idx
-      ON conversations(user2_id);
-    `);
-
-    console.log('¡Todas las tablas inicializadas correctamente!');
-
-    // 8. Insertar datos de prueba si no hay productos
-    const productsCount = await pool.query('SELECT COUNT(*) FROM products');
-    if (parseInt(productsCount.rows[0].count) === 0) {
-      console.log('📦 Insertando datos de prueba...');
-
-      const usersCount = await pool.query('SELECT COUNT(*) FROM users');
-      if (parseInt(usersCount.rows[0].count) === 0) {
-        await pool.query(`
-          INSERT INTO users (nombre, correo, password_hash)
-          VALUES ('Usuario Demo', 'demo@swapply.com', '$2b$10$demoHash')
-          ON CONFLICT (correo) DO NOTHING;
-        `);
-      }
-
-      const userResult = await pool.query('SELECT id FROM users LIMIT 1');
-      const userId = userResult.rows[0].id;
-
-      await pool.query(`
-        INSERT INTO products
-          (title, description, category, condition, images, owner_id, location, status)
-        VALUES
-          ('iPhone 12 Pro', 'En excelente estado, se busca intercambiar por Android gama alta.', 'electronica', 'como_nuevo',
-           ARRAY['https://images.unsplash.com/photo-1607936854279-55e8a4c64888?w=400'], $1, 'Ciudad de México', 'available'),
-
-          ('Bicicleta de montaña Trek', 'Ideal para rutas de montaña, abierta a intercambios por equipo deportivo.', 'deportes', 'bueno',
-           ARRAY['https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400'], $1, 'Monterrey', 'available'),
-
-          ('Nintendo Switch OLED', 'Poco uso, busco intercambiar por consola retro o accesorios gaming.', 'electronica', 'como_nuevo',
-           ARRAY['https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400'], $1, 'Querétaro', 'available');
-      `, [userId]);
-
-      console.log('Datos de prueba insertados');
-    }
-
+    console.log('¡Todas las tablas e índices inicializados correctamente!');
   } catch (err) {
-    console.error('Error inicializando tablas:', err);
+    console.error('❌ Error inicializando tablas:', err);
     throw err;
   }
 }

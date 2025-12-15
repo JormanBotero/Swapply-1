@@ -1,8 +1,8 @@
-// client/src/pages/EditProduct.jsx
+// client/src/pages/EditProduct.jsx - VERSIÓN CORREGIDA
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProductById, updateProduct } from '../services/products';
-import './PublishProduct.css'; // Reutiliza el mismo CSS
+import { getProductById, updateProduct, deleteProduct } from '../services/products';
+import './PublishProduct.css';
 
 function EditProduct() {
   const { id } = useParams();
@@ -47,6 +47,18 @@ function EditProduct() {
     { value: 'traded', label: 'Intercambiado' }
   ];
 
+  // ==================== NUEVO: LIMPIEZA DE BLOB URLs ====================
+  useEffect(() => {
+    return () => {
+      // Limpiar URLs blob al desmontar el componente
+      imageUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [imageUrls]);
+
   useEffect(() => {
     fetchProduct();
   }, [id]);
@@ -73,7 +85,7 @@ function EditProduct() {
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      alert('Error al cargar el producto');
+      alert('❌ Error al cargar el producto');
       navigate('/products');
     } finally {
       setLoading(false);
@@ -107,6 +119,11 @@ function EditProduct() {
     const newImages = [...images];
     const newUrls = [...imageUrls];
     
+    // Liberar URL blob antes de eliminarla
+    if (imageUrls[index].startsWith('blob:')) {
+      URL.revokeObjectURL(imageUrls[index]);
+    }
+    
     newImages.splice(index, 1);
     newUrls.splice(index, 1);
     
@@ -125,41 +142,68 @@ function EditProduct() {
     try {
       setSaving(true);
       
-      // Combinar imágenes existentes con nuevas
-      const allImageUrls = [
-        ...formData.images.filter(img => !img.startsWith('blob:')), // Mantener URLs existentes
-        ...imageUrls.filter(url => url.startsWith('blob:')) // Agregar nuevas
-      ];
+      // Convertir blobs a base64 y mantener URLs existentes
+      const processedImages = await Promise.all(
+        imageUrls.map(async (url) => {
+          if (url.startsWith('blob:')) {
+            // Convertir blob a base64
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(blob);
+            });
+          }
+          return url; // Mantener URL existente
+        })
+      );
 
       const productData = {
         ...formData,
-        images: allImageUrls,
+        images: processedImages,
         price: formData.price ? parseFloat(formData.price) : 0
       };
 
       await updateProduct(id, productData);
       
-      alert('Producto actualizado exitosamente!');
+      // Limpiar blobs después de guardar
+      imageUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      
+      alert('✅ Producto actualizado exitosamente!');
       navigate(`/products/${id}`);
       
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Error al actualizar el producto. Intenta nuevamente.');
+      alert('❌ Error al actualizar el producto: ' + (error.response?.data?.error || error.message));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este producto?\nEsta acción no se puede deshacer.')) {
       try {
-        // Necesitarías crear la función deleteProduct en services
-        // await deleteProduct(id);
-        alert('Producto eliminado (función por implementar)');
+        setSaving(true);
+        await deleteProduct(id);
+        
+        // Limpiar blobs antes de salir
+        imageUrls.forEach(url => {
+          if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+          }
+        });
+        
+        alert('✅ Producto eliminado exitosamente');
         navigate('/products');
       } catch (error) {
         console.error('Error deleting product:', error);
-        alert('Error al eliminar el producto');
+        alert('❌ Error al eliminar el producto: ' + (error.response?.data?.error || error.message));
+        setSaving(false);
       }
     }
   };
@@ -219,11 +263,19 @@ function EditProduct() {
               <div className="image-preview-grid">
                 {imageUrls.map((url, index) => (
                   <div key={index} className="image-preview">
-                    <img src={url} alt={`Preview ${index + 1}`} />
+                    <img 
+                      src={url} 
+                      alt={`Preview ${index + 1}`}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/150x150?text=Error';
+                        e.target.onerror = null;
+                      }}
+                    />
                     <button
                       type="button"
                       className="remove-image"
                       onClick={() => removeImage(index)}
+                      aria-label="Eliminar imagen"
                     >
                       ×
                     </button>
@@ -371,6 +423,7 @@ function EditProduct() {
               type="button"
               className="cancel-btn"
               onClick={() => navigate(`/products/${id}`)}
+              disabled={saving}
             >
               Cancelar
             </button>
@@ -379,9 +432,9 @@ function EditProduct() {
               type="button"
               className="delete-btn"
               onClick={handleDelete}
-              style={{ background: '#e53e3e' }}
+              disabled={saving}
             >
-              Eliminar Producto
+              {saving ? 'Eliminando...' : 'Eliminar Producto'}
             </button>
             
             <button

@@ -1,10 +1,8 @@
-// client/src/pages/ProductDetail.jsx
+// client/src/pages/ProductDetail.jsx - VERSIÓN CORRECTA
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProductById } from '../services/products';
 import { expressInterest } from '../services/chat';
-
-
 import { me } from '../services/auth';
 import { initSocket, notifyProductInterest } from '../services/socket';
 import './ProductDetail.css';
@@ -30,10 +28,8 @@ function ProductDetail() {
     const socketInstance = initSocket();
     setSocket(socketInstance);
     
-    // Escuchar notificaciones de interés
     socketInstance?.on('new-interest-notification', (data) => {
       console.log('Nuevo interés recibido:', data);
-      // Podrías mostrar una notificación aquí
     });
   };
 
@@ -55,6 +51,7 @@ function ProductDetail() {
       setUser(data);
     } catch (error) {
       console.error('Error fetching user:', error);
+      setUser(null);
     }
   };
 
@@ -74,7 +71,6 @@ function ProductDetail() {
       const data = await expressInterest(id);
       
       if (data.conversationId) {
-        // Notificar al dueño del producto vía WebSocket
         if (socket) {
           notifyProductInterest({
             productId: id,
@@ -84,11 +80,9 @@ function ProductDetail() {
           });
         }
         
-        // Redirigir directamente al chat
         navigate(`/chat/${data.conversationId}`);
       } else {
         setShowContact(true);
-        // Intentar crear conversación manualmente
         setTimeout(() => {
           navigate('/chat');
         }, 2000);
@@ -96,9 +90,8 @@ function ProductDetail() {
     } catch (error) {
       console.error('Error expressing interest:', error);
       
-      // Fallback: crear chat manualmente y redirigir
       if (error.response?.status === 404 || error.response?.status === 500) {
-        const fallbackConversationId = Date.now(); // ID temporal
+        const fallbackConversationId = Date.now();
         alert('Redirigiendo al chat...');
         navigate(`/chat/${fallbackConversationId}`);
       } else {
@@ -110,13 +103,13 @@ function ProductDetail() {
   };
 
   const handleNextImage = () => {
-    if (product.images && product.images.length > 0) {
+    if (product?.images?.length > 0) {
       setCurrentImage((prev) => (prev + 1) % product.images.length);
     }
   };
 
   const handlePrevImage = () => {
-    if (product.images && product.images.length > 0) {
+    if (product?.images?.length > 0) {
       setCurrentImage((prev) => (prev - 1 + product.images.length) % product.images.length);
     }
   };
@@ -132,7 +125,6 @@ function ProductDetail() {
       return;
     }
 
-    // Crear conversación temporal
     const tempConversationId = `temp_${product.owner_id}_${user.id}_${id}`;
     navigate(`/chat/${tempConversationId}`, {
       state: {
@@ -175,7 +167,7 @@ function ProductDetail() {
       </Link>
 
       <div className="product-detail-grid">
-        {/* Galería de imágenes */}
+        {/* Galería de imágenes - CORREGIDA */}
         <div className="product-gallery">
           <div className="main-image">
             {product.images && product.images.length > 0 ? (
@@ -184,7 +176,8 @@ function ProductDetail() {
                   src={product.images[currentImage]} 
                   alt={`${product.title} - ${currentImage + 1}`}
                   onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/600x400?text=No+Image';
+                    e.target.src = 'https://via.placeholder.com/600x400/4a5568/ffffff?text=Imagen+no+disponible';
+                    e.target.onerror = null; // Evita bucle infinito
                   }}
                 />
                 {product.images.length > 1 && (
@@ -206,7 +199,8 @@ function ProductDetail() {
               </>
             ) : (
               <div className="no-image-large">
-                Sin imágenes disponibles
+                <span>📷</span>
+                <p>Sin imágenes disponibles</p>
               </div>
             )}
           </div>
@@ -223,7 +217,8 @@ function ProductDetail() {
                     src={img} 
                     alt={`Miniatura ${index + 1}`}
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/100x80?text=Imagen';
+                      e.target.src = 'https://via.placeholder.com/100x80/4a5568/ffffff?text=Imagen';
+                      e.target.onerror = null;
                     }}
                   />
                 </button>
@@ -248,7 +243,7 @@ function ProductDetail() {
             </div>
             <h1>{product.title}</h1>
             <div className="price-detail">
-              {product.price ? `$${product.price}` : '🆓 Gratis'}
+              {product.price ? `$${parseFloat(product.price).toFixed(2)}` : '🆓 Gratis'}
             </div>
           </div>
 
@@ -288,7 +283,14 @@ function ProductDetail() {
             <div className="seller-card">
               <div className="seller-avatar">
                 {product.owner_picture ? (
-                  <img src={product.owner_picture} alt={product.owner_name} />
+                  <img 
+                    src={product.owner_picture} 
+                    alt={product.owner_name}
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100x100/4a5568/ffffff?text=Usuario';
+                      e.target.onerror = null;
+                    }}
+                  />
                 ) : (
                   <div className="avatar-placeholder">
                     {product.owner_name?.charAt(0) || 'U'}
@@ -365,7 +367,8 @@ function ProductDetail() {
                     className="delete-btn"
                     onClick={() => {
                       if (window.confirm('¿Estás seguro de eliminar este producto?')) {
-                        alert('Función de eliminación en desarrollo');
+                        alert('Redirigiendo a edición para eliminar...');
+                        navigate(`/products/edit/${product.id}`);
                       }
                     }}
                   >
@@ -432,7 +435,7 @@ function ProductDetail() {
             )}
           </div>
 
-          {/* Sección de chat rápido (para dueños) */}
+          {/* Sección de chat rápido */}
           {isOwner && (
             <div className="quick-chat-section">
               <h3>💬 Conversaciones sobre este producto</h3>

@@ -1,5 +1,5 @@
-// client/src/pages/PublishProduct.jsx
-import { useState } from 'react';
+// client/src/pages/PublishProduct.jsx - VERSIÓN CORREGIDA
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createProduct } from '../services/products';
 import { me } from '../services/auth';
@@ -39,16 +39,17 @@ function PublishProduct() {
     { value: 'necesita_reparacion', label: 'Necesita reparación' }
   ];
 
-  // ESTILOS INLINE GARANTIZADOS
-  const inputStyles = {
-    color: '#2d3748',
-    backgroundColor: '#ffffff',
-    border: '2px solid #e2e8f0'
-  };
-
-  const placeholderStyles = {
-    color: '#a0aec0'
-  };
+  // ==================== NUEVO: LIMPIEZA DE BLOB URLs ====================
+  useEffect(() => {
+    return () => {
+      // Limpiar URLs blob al desmontar el componente
+      imageUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [imageUrls]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +78,11 @@ function PublishProduct() {
     const newImages = [...images];
     const newUrls = [...imageUrls];
     
+    // Liberar URL blob antes de eliminarla
+    if (imageUrls[index].startsWith('blob:')) {
+      URL.revokeObjectURL(imageUrls[index]);
+    }
+    
     newImages.splice(index, 1);
     newUrls.splice(index, 1);
     
@@ -102,9 +108,24 @@ function PublishProduct() {
         return;
       }
 
-      // Aquí deberías subir las imágenes a un servicio como Cloudinary
-      // Por ahora, usaremos URLs de placeholder
-      const uploadedImages = imageUrls; // Reemplazar con URLs reales
+      // ==================== CORRECCIÓN: SUBIR IMÁGENES REALES ====================
+      // En una implementación real, aquí subirías las imágenes a Cloudinary o similar
+      // Por ahora, convertimos blobs a base64 o mantenemos URLs existentes
+      const uploadedImages = await Promise.all(
+        imageUrls.map(async (url, index) => {
+          if (url.startsWith('blob:')) {
+            // Convertir blob a base64 (solución temporal)
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(blob);
+            });
+          }
+          return url; // Si ya es una URL normal (no blob), mantenerla
+        })
+      );
 
       const productData = {
         ...formData,
@@ -112,14 +133,22 @@ function PublishProduct() {
         price: formData.price ? parseFloat(formData.price) : 0
       };
 
+      console.log('Enviando producto:', productData);
       const result = await createProduct(productData);
       
-      alert('Producto publicado exitosamente!');
+      // Limpiar blobs después de enviar
+      imageUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      
+      alert('✅ Producto publicado exitosamente!');
       navigate(`/products/${result.id}`);
       
     } catch (error) {
       console.error('Error publishing product:', error);
-      alert('Error al publicar el producto. Intenta nuevamente.');
+      alert('❌ Error al publicar el producto: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }
@@ -127,36 +156,6 @@ function PublishProduct() {
 
   return (
     <div className="publish-page">
-      {/* ESTILOS EMERGENTES PARA GARANTIZAR VISIBILIDAD */}
-      <style>{`
-        .publish-container input,
-        .publish-container textarea,
-        .publish-container select {
-          color: #2d3748 !important;
-          background-color: #ffffff !important;
-          -webkit-text-fill-color: #2d3748 !important;
-        }
-        .publish-container input::placeholder,
-        .publish-container textarea::placeholder {
-          color: #a0aec0 !important;
-          -webkit-text-fill-color: #a0aec0 !important;
-          opacity: 1 !important;
-        }
-        .publish-container select option {
-          color: #2d3748 !important;
-          background-color: #ffffff !important;
-        }
-        .price-input .currency {
-          color: #718096 !important;
-        }
-        .char-count {
-          color: #718096 !important;
-        }
-        .input-hint {
-          color: #718096 !important;
-        }
-      `}</style>
-      
       <div className="publish-container">
         <header className="publish-header">
           <h1>Publicar Nuevo Producto</h1>
@@ -197,11 +196,19 @@ function PublishProduct() {
               <div className="image-preview-grid">
                 {imageUrls.map((url, index) => (
                   <div key={index} className="image-preview">
-                    <img src={url} alt={`Preview ${index + 1}`} />
+                    <img 
+                      src={url} 
+                      alt={`Preview ${index + 1}`}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/150x150?text=Error';
+                        e.target.onerror = null;
+                      }}
+                    />
                     <button
                       type="button"
                       className="remove-image"
                       onClick={() => removeImage(index)}
+                      aria-label="Eliminar imagen"
                     >
                       ×
                     </button>
@@ -234,7 +241,6 @@ function PublishProduct() {
                 placeholder="Ej: iPhone 12 en perfecto estado"
                 maxLength={60}
                 required
-                style={inputStyles}
               />
             </div>
 
@@ -254,7 +260,6 @@ function PublishProduct() {
                 rows={6}
                 maxLength={2000}
                 required
-                style={inputStyles}
               />
             </div>
 
@@ -267,7 +272,6 @@ function PublishProduct() {
                   value={formData.category}
                   onChange={handleInputChange}
                   required
-                  style={inputStyles}
                 >
                   <option value="">Selecciona una categoría</option>
                   {categories.map(cat => (
@@ -285,7 +289,6 @@ function PublishProduct() {
                   name="condition"
                   value={formData.condition}
                   onChange={handleInputChange}
-                  style={inputStyles}
                 >
                   {conditions.map(cond => (
                     <option key={cond.value} value={cond.value}>
@@ -310,7 +313,6 @@ function PublishProduct() {
                     placeholder="0.00"
                     min="0"
                     step="0.01"
-                    style={inputStyles}
                   />
                 </div>
                 <p className="input-hint">
@@ -327,7 +329,6 @@ function PublishProduct() {
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="Ciudad, Estado"
-                  style={inputStyles}
                 />
               </div>
             </div>

@@ -2,11 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getMessages, getConversations } from '../services/chat';
 import { me } from '../services/auth';
-import {
-  initSocket,
-  joinChat,
-  leaveChat
-} from '../services/socket';
+import {initSocket,joinChat,leaveChat} from '../services/socket';
 import './ChatRoom.css';
 
 function ChatRoom() {

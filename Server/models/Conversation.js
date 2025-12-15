@@ -58,3 +58,11 @@ export async function updateConversationLastMessage(conversation_id, last_messag
     [last_message, conversation_id]
   );
 }
+
+export async function findConversationById(conversation_id) {
+  const res = await query(
+    `SELECT * FROM conversations WHERE id = $1`,
+    [conversation_id]
+  );
+  return res.rows[0];
+}

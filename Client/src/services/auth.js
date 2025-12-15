@@ -1,11 +1,13 @@
 import axios from 'axios'
 
+
 const api = axios.create({
-  // Use relative path so Vite dev server can proxy /api -> backend (same-origin cookies)
   baseURL: import.meta.env.VITE_API_URL || '',
-  withCredentials: true,
+  withCredentials: true, // ← MANDATORIO para cookies
   headers: { 'Content-Type': 'application/json' },
 })
+
+// ¡NO uses interceptor para guardar token! Tu backend usa cookies
 
 export async function registerUser({ nombre, correo, contrasena }) {
   const res = await api.post('/api/auth/register', { nombre, correo, contrasena })
@@ -24,6 +26,10 @@ export async function me() {
 
 export async function logoutUser() {
   const res = await api.post('/api/auth/logout')
+  
+  // Limpiar solo usuario, no token (porque está en cookie)
+  localStorage.removeItem('user');
+  
   return res.data
 }
 
@@ -59,8 +65,10 @@ export async function resetPassword(correo, codigo, contrasena) {
   return res.data
 }
 
-// Google login: send ID token obtained from Google Identity Services
+// Google login
 export async function loginWithGoogle(credential) {
   const res = await api.post('/api/auth/google', { credential })
   return res.data
 }
+
+export { api }

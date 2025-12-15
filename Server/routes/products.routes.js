@@ -1,4 +1,3 @@
-// server/routes/products.routes.js
 import { Router } from 'express';
 import { 
   createProduct, 
@@ -8,25 +7,18 @@ import {
   deleteProduct,
   expressInterest 
 } from '../controllers/product.controller.js';
+import { requireAuth, optionalAuth } from '../middlewares/auth.js'; // ← Importar
 
 const router = Router();
 
-// Obtener todos los productos (con filtros opcionales)
-router.get('/', getProducts);
+// Público (puede que quieras que optionalAuth para mostrar info extra si está logueado)
+router.get('/', optionalAuth, getProducts);
+router.get('/:id', optionalAuth, getProductById);
 
-// Obtener un producto específico
-router.get('/:id', getProductById);
-
-// Crear un nuevo producto
-router.post('/', createProduct);
-
-// Actualizar un producto
-router.put('/:id', updateProduct);
-
-// Eliminar un producto
-router.delete('/:id', deleteProduct);
-
-// Mostrar interés en un producto
-router.post('/:id/interest', expressInterest);
+// Protegidas (requieren autenticación)
+router.post('/', requireAuth, createProduct);
+router.put('/:id', requireAuth, updateProduct);
+router.delete('/:id', requireAuth, deleteProduct);
+router.post('/:id/interest', requireAuth, expressInterest);
 
 export default router;

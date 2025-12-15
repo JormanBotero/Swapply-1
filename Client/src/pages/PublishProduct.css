@@ -25,6 +25,7 @@
   margin: 0 0 15px 0;
   font-size: 2.5rem;
   font-weight: 700;
+  color: white;
 }
 
 .publish-header p {
@@ -34,11 +35,52 @@
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
+  color: white;
 }
 
 .publish-form {
   padding: 40px;
 }
+
+/* ========== CORRECCIONES PARA TEXTO VISIBLE ========== */
+/* Fuerza colores en todos los inputs */
+.publish-form input,
+.publish-form textarea,
+.publish-form select {
+  color: #2d3748 !important;
+  background-color: #ffffff !important;
+  -webkit-text-fill-color: #2d3748 !important;
+}
+
+/* Placeholders visibles */
+.publish-form input::placeholder,
+.publish-form textarea::placeholder {
+  color: #a0aec0 !important;
+  -webkit-text-fill-color: #a0aec0 !important;
+  opacity: 1 !important;
+}
+
+/* Para navegadores WebKit (Chrome, Safari) */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .publish-form input,
+  .publish-form textarea,
+  .publish-form select {
+    -webkit-text-fill-color: #2d3748 !important;
+  }
+  
+  .publish-form input::placeholder,
+  .publish-form textarea::placeholder {
+    -webkit-text-fill-color: #a0aec0 !important;
+  }
+}
+
+/* Opciones del select visibles */
+.publish-form select option {
+  color: #2d3748 !important;
+  background-color: #ffffff !important;
+}
+
+/* ========== FIN CORRECCIONES ========== */
 
 .form-section {
   margin-bottom: 50px;
@@ -317,6 +359,11 @@
   animation: spin 1s linear infinite;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .publish-page {
@@ -368,28 +415,4 @@
   .form-section h2 {
     font-size: 1.5rem;
   }
-}
-
-/* Agrega esto al final de PublishProduct.css */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  gap: 20px;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #e2e8f0;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }

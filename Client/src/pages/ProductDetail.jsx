@@ -48,7 +48,7 @@ function ImageGallery({ images, current, onNext, onPrev, onSelect, editable, onR
   );
 }
 
-function SellerCard({ owner, isOwner, onChat }) {
+function SellerCard({ owner, isOwner }) {
   return (
     <div className="seller-card">
       <div className="seller-avatar">
@@ -60,10 +60,6 @@ function SellerCard({ owner, isOwner, onChat }) {
       </div>
       <div className="seller-details">
         <h4>{owner.name || 'Usuario'}</h4>
-        <div className="seller-actions">
-          <button className="view-profile-btn" onClick={() => alert('Perfil en desarrollo')}>Ver Perfil</button>
-          {!isOwner && <button className="direct-chat-btn" onClick={onChat}>💬 Chat Directo</button>}
-        </div>
       </div>
     </div>
   );
@@ -223,12 +219,23 @@ export default function ProductDetail() {
                 <p>{product.description || 'No hay descripción disponible.'}</p>
               </div>
 
-              <SellerCard owner={{ name: product.owner_name, picture: product.owner_picture }} isOwner={isOwner} onChat={handleStartChat} />
+              <SellerCard owner={{ name: product.owner_name, picture: product.owner_picture }} isOwner={isOwner} />
 
               {!isOwner && product.status==='available' && (
                 <div className="action-buttons">
-                  <button className="interest-btn primary" onClick={handleExpressInterest} disabled={interestLoading}>{interestLoading ? 'Procesando...' : '🤝 Mostrar Interés'}</button>
-                  <button className="interest-btn secondary" onClick={handleStartChat}>💬 Solo Chatear</button>
+                  <button
+                    className="interest-btn primary"
+                    onClick={handleExpressInterest}
+                    disabled={interestLoading}
+                  >
+                    {interestLoading ? 'Procesando...' : '🤝 Mostrar Interés'}
+                  </button>
+                  <button
+                    className="interest-btn secondary"
+                    onClick={handleStartChat}
+                  >
+                    💬 Chat Directo
+                  </button>
                 </div>
               )}
 

@@ -1,4 +1,4 @@
-// server/index.js - Socket.IO AUTENTICADO Y PRODUCCIÓN
+// server/index.js - Socket.IO AUTENTICADO (PRODUCCIÓN)
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -7,7 +7,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 
-import { initTables } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import productRoutes from './routes/products.routes.js';
 import chatRoutes from './routes/chat.routes.js';
@@ -21,7 +20,7 @@ const httpServer = createServer(app);
 // ================== SOCKET.IO ==================
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CLIENT_ORIGIN,
     credentials: true
   }
 });
@@ -56,21 +55,17 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('Usuario conectado (socket):', socket.userId);
 
-  // Sala personal para notificaciones
+  // Sala personal
   socket.join(`user_${socket.userId}`);
 
-  // Unirse a una conversación (VALIDADA)
   socket.on('join-chat', async (conversationId) => {
     const convo = await ConversationModel.findConversationById(conversationId);
-
     if (!convo) return;
 
     if (
       convo.user1_id !== socket.userId &&
       convo.user2_id !== socket.userId
-    ) {
-      return;
-    }
+    ) return;
 
     socket.join(`chat_${conversationId}`);
   });
@@ -79,18 +74,14 @@ io.on('connection', (socket) => {
     socket.leave(`chat_${conversationId}`);
   });
 
-  // Enviar mensaje (GUARDADO EN DB)
   socket.on('send-message', async ({ conversationId, content }) => {
     const convo = await ConversationModel.findConversationById(conversationId);
-
     if (!convo) return;
 
     if (
       convo.user1_id !== socket.userId &&
       convo.user2_id !== socket.userId
-    ) {
-      return;
-    }
+    ) return;
 
     const message = await MessageModel.createMessage({
       conversation_id: conversationId,
@@ -101,7 +92,6 @@ io.on('connection', (socket) => {
     io.to(`chat_${conversationId}`).emit('new-message', message);
   });
 
-  // Interés en producto
   socket.on('interest-in-product', ({ productId, productOwnerId }) => {
     io.to(`user_${productOwnerId}`).emit('new-interest-notification', {
       productId,
@@ -116,7 +106,7 @@ io.on('connection', (socket) => {
 
 // ================== EXPRESS ==================
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CLIENT_ORIGIN,
   credentials: true
 }));
 
@@ -133,14 +123,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 // ================== START ==================
 const PORT = process.env.PORT || 3000;
 
-initTables()
-  .then(() => {
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      console.log('Socket.IO seguro activo');
-    });
-  })
-  .catch((err) => {
-    console.error('DB init failed', err);
-    process.exit(1);
-  });
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('Socket.IO seguro activo');
+});

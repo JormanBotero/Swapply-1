@@ -8,32 +8,19 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const user = await me(); // devuelve null si no hay sesión
+      setIsAuthenticated(!!user);
+      setLoading(false);
+    };
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const user = await me();
-      setIsAuthenticated(!!user);
-    } catch (error) {
-      console.error('Auth check error:', error);
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Verificando autenticación...</p>
-      </div>
-    );
+    return <div>Cargando...</div>; // loader mientras verifica
   }
 
   if (!isAuthenticated) {
-    // Redirigir al login, guardando la página a la que intentaba acceder
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -39,18 +39,8 @@ export async function loginUser({ correo, contrasena }) {
 }
 
 export async function me() {
-  try {
-    const res = await api.get('/api/auth/me');
-    return res.data;
-  } catch (error) {
-    if (error.response?.status === 401) {
-      console.log('🔐 Sesión expirada o inválida');
-      localStorage.removeItem('user'); // Solo limpiar usuario
-      throw error;
-    }
-    console.error('Error fetching user:', error);
-    throw error;
-  }
+  const res = await api.get('/api/auth/me')
+  return res.data
 }
 
 export async function logoutUser() {
@@ -97,20 +87,8 @@ export async function resetPassword(correo, codigo, contrasena) {
 // Google login
 export async function loginWithGoogle(credential) {
   const res = await api.post('/api/auth/google', { credential })
-  
-  // Guardar usuario si viene
-  if (res.data.user) {
-    localStorage.setItem('user', JSON.stringify(res.data.user));
-  }
-  
   return res.data
 }
 
-// Función para verificar si hay sesión (usa cookies)
-export function isAuthenticated() {
-  // Como usamos cookies, no podemos verificar desde localStorage
-  // El middleware 'me()' verificará la sesión
-  return true; // Asumir que hay sesión, el backend validará
-}
 
 export { api }

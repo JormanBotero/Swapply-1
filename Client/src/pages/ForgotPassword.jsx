@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { requestPasswordReset, verifyPasswordReset, resetPassword } from '../services/auth'
-import './register.css'
+import './Register.css'
 
 export default function ForgotPassword() {
   const [correo, setCorreo] = useState('')

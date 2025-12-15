@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import './login.css'
+import './Login.css'
 import GoogleLoginButton from '../components/GoogleLoginButton'
 
 export default function Login() {

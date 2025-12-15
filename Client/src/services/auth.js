@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-// Configuración para usar COOKIES (no token en localStorage)
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL || '',
   withCredentials: true, // ← MANDATORIO para cookies
   headers: { 'Content-Type': 'application/json' },
 })
@@ -15,27 +15,8 @@ export async function registerUser({ nombre, correo, contrasena }) {
 }
 
 export async function loginUser({ correo, contrasena }) {
-  try {
-    console.log('🔐 Intentando login...');
-    const res = await api.post('/api/auth/login', { correo, contrasena })
-    
-    console.log('✅ Login exitoso');
-    console.log('Respuesta del servidor:', res.data);
-    
-    // IMPORTANTE: NO guardar token en localStorage
-    // Tu backend usa cookies, el token está en la cookie 'swapply_token'
-    
-    // Solo guardar información del usuario si viene
-    if (res.data.user) {
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      console.log('👤 Usuario guardado:', res.data.user.nombre);
-    }
-    
-    return res.data;
-  } catch (error) {
-    console.error('❌ Error en login:', error);
-    throw error;
-  }
+  const res = await api.post('/api/auth/login', { correo, contrasena })
+  return res.data
 }
 
 export async function me() {
@@ -89,6 +70,5 @@ export async function loginWithGoogle(credential) {
   const res = await api.post('/api/auth/google', { credential })
   return res.data
 }
-
 
 export { api }

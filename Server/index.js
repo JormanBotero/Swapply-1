@@ -1,115 +1,145 @@
-// server/index.js - VERSIÓN CON SOCKET.IO
+// server/index.js - Socket.IO AUTENTICADO Y PRODUCCIÓN
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { createServer } from 'http'; // <-- AGREGAR
-import { Server } from 'socket.io'; // <-- AGREGAR
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
 
 import { initTables } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import productRoutes from './routes/products.routes.js';
-import chatRoutes from './routes/chat.routes.js'; // <-- AGREGAR
+import chatRoutes from './routes/chat.routes.js';
+
+import * as ConversationModel from './models/Conversation.js';
+import * as MessageModel from './models/message.js';
 
 const app = express();
+const httpServer = createServer(app);
 
-// Crear servidor HTTP para Socket.io
-const httpServer = createServer(app); // <-- MODIFICAR
-const io = new Server(httpServer, { // <-- AGREGAR
+// ================== SOCKET.IO ==================
+const io = new Server(httpServer, {
   cors: {
     origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
     credentials: true
   }
 });
 
+// --------- AUTENTICACIÓN DEL SOCKET (JWT) ---------
+io.use((socket, next) => {
+  try {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (!cookieHeader) {
+      return next(new Error('No cookies sent'));
+    }
+
+    const cookies = Object.fromEntries(
+      cookieHeader.split('; ').map(c => c.split('='))
+    );
+
+    const token = cookies.swapply_token;
+    if (!token) {
+      return next(new Error('No token in cookies'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.sub;
+
+    next();
+  } catch (err) {
+    next(new Error('Unauthorized socket'));
+  }
+});
+
+// ---------------- SOCKET EVENTS ------------------
+io.on('connection', (socket) => {
+  console.log('Usuario conectado (socket):', socket.userId);
+
+  // Sala personal para notificaciones
+  socket.join(`user_${socket.userId}`);
+
+  // Unirse a una conversación (VALIDADA)
+  socket.on('join-chat', async (conversationId) => {
+    const convo = await ConversationModel.findConversationById(conversationId);
+
+    if (!convo) return;
+
+    if (
+      convo.user1_id !== socket.userId &&
+      convo.user2_id !== socket.userId
+    ) {
+      return;
+    }
+
+    socket.join(`chat_${conversationId}`);
+  });
+
+  socket.on('leave-chat', (conversationId) => {
+    socket.leave(`chat_${conversationId}`);
+  });
+
+  // Enviar mensaje (GUARDADO EN DB)
+  socket.on('send-message', async ({ conversationId, content }) => {
+    const convo = await ConversationModel.findConversationById(conversationId);
+
+    if (!convo) return;
+
+    if (
+      convo.user1_id !== socket.userId &&
+      convo.user2_id !== socket.userId
+    ) {
+      return;
+    }
+
+    const message = await MessageModel.createMessage({
+      conversation_id: conversationId,
+      sender_id: socket.userId,
+      content
+    });
+
+    io.to(`chat_${conversationId}`).emit('new-message', message);
+  });
+
+  // Interés en producto
+  socket.on('interest-in-product', ({ productId, productOwnerId }) => {
+    io.to(`user_${productOwnerId}`).emit('new-interest-notification', {
+      productId,
+      fromUserId: socket.userId
+    });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket desconectado:', socket.userId);
+  });
+});
+
+// ================== EXPRESS ==================
 app.use(cors({
-  origin: (origin, cb) => {
-    const allow = [process.env.CLIENT_ORIGIN || 'http://localhost:5173'];
-    if (!origin || allow.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
+  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  credentials: true
 }));
 
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/chat', chatRoutes); // <-- AGREGAR
+app.use('/api/chat', chatRoutes);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Socket.io Connection Handling
-io.on('connection', (socket) => {
-  console.log('Usuario conectado al chat:', socket.id);
-
-  // Unirse a una sala de chat específica
-  socket.on('join-chat', (conversationId) => {
-    socket.join(`chat_${conversationId}`);
-    console.log(`Socket ${socket.id} unido a chat_${conversationId}`);
-  });
-
-  // Salir de una sala de chat
-  socket.on('leave-chat', (conversationId) => {
-    socket.leave(`chat_${conversationId}`);
-  });
-
-  // Enviar mensaje
-  socket.on('send-message', async (data) => {
-    const { conversationId, senderId, content } = data;
-    
-    console.log('Mensaje recibido:', data);
-    
-    // Aquí guardarías en la base de datos
-    // const message = await MessageModel.createMessage({...});
-    
-    // Emitir el mensaje a todos en la sala
-    io.to(`chat_${conversationId}`).emit('new-message', {
-      conversationId,
-      senderId,
-      content,
-      timestamp: new Date().toISOString(),
-      id: Date.now() // Temporal - usar ID real de BD
-    });
-    
-    // Notificar a otros usuarios (para notificaciones)
-    socket.to(`chat_${conversationId}`).emit('message-notification', {
-      conversationId,
-      senderId,
-      preview: content.substring(0, 50)
-    });
-  });
-
-  // Cuando un usuario muestra interés en un producto
-  socket.on('interest-in-product', (data) => {
-    const { productId, productOwnerId, interestedUserId } = data;
-    
-    // Notificar al dueño del producto
-    io.to(`user_${productOwnerId}`).emit('new-interest-notification', {
-      productId,
-      interestedUserId,
-      message: 'Alguien está interesado en tu producto'
-    });
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Usuario desconectado del chat:', socket.id);
-  });
-});
-
+// ================== START ==================
 const PORT = process.env.PORT || 3000;
 
-// Inicializar tablas → levantar servidor
 initTables()
   .then(() => {
-    httpServer.listen(PORT, () => { // <-- CAMBIAR app.listen por httpServer.listen
+    httpServer.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
-      console.log(`WebSockets disponibles en ws://localhost:${PORT}`);
+      console.log('Socket.IO seguro activo');
     });
   })
   .catch((err) => {
-    console.error('Failed initializing database', err);
+    console.error('DB init failed', err);
     process.exit(1);
   });

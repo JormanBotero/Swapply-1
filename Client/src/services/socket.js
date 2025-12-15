@@ -4,32 +4,24 @@ import { io } from 'socket.io-client';
 let socket = null;
 
 // Inicializar conexión Socket.io
-export function initSocket(token = null) {
+export function initSocket() {
   if (socket?.connected) return socket;
-  
+
   const url = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  
+
   socket = io(url, {
-    auth: token ? { token } : {},
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000
+    withCredentials: true, // ← CLAVE
+    transports: ['websocket', 'polling']
   });
-  
-  // Eventos de conexión
+
   socket.on('connect', () => {
-    console.log('Conectado al servidor de chat');
+    console.log('Conectado al chat (socket)');
   });
-  
-  socket.on('disconnect', (reason) => {
-    console.log('Desconectado del chat:', reason);
+
+  socket.on('connect_error', (err) => {
+    console.error('Error de conexión al chat:', err.message);
   });
-  
-  socket.on('connect_error', (error) => {
-    console.error('Error de conexión al chat:', error);
-  });
-  
+
   return socket;
 }
 
@@ -55,7 +47,7 @@ export function leaveChat(conversationId) {
   }
 }
 
-// Enviar mensaje a través de Socket.io
+// Enviar mensaje
 export function sendMessageViaSocket(data) {
   if (socket) {
     socket.emit('send-message', data);

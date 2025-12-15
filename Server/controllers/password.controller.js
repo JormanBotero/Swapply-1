@@ -27,10 +27,64 @@ export async function requestPasswordReset(req, res) {
 
     const subject = 'Código de restablecimiento de contraseña - Swapply';
     const html = `
-      <p>Ingresa este código para restablecer tu contraseña:</p>
-      <h2>${code}</h2>
-      <p>Expira en 10 minutos.</p>
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecer contraseña - Swapply</title>
+    </head>
+    <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px; background-color:#f4f4f4;">
+    <tr>
+    <td align="center">
+      <table style="width:100%; max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+        <tr>
+          <td style="background:#3b82f6; padding:40px 20px; text-align:center; color:#fff;">
+            <h1 style="margin:0; font-size:28px;">Swapply</h1>
+            <p style="margin:5px 0 0 0; font-size:16px;">Restablecimiento de contraseña</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:30px 20px; text-align:center; color:#1e293b;">
+            <h2 style="font-size:20px; margin-bottom:20px;">¡Hola!</h2>
+            <p style="margin:0 0 20px 0; font-size:16px; color:#64748b;">
+              Recibimos una solicitud para restablecer la contraseña de tu cuenta Swapply.
+            </p>
+            <p style="margin:0 0 20px 0; font-size:16px; color:#64748b;">
+              Ingresa el siguiente código en la aplicación para continuar:
+            </p>
+
+            <!-- Código -->
+            <a href="#" style="display:inline-block; text-decoration:none; background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%); color:#fff; padding:20px 40px; font-size:32px; font-weight:700; letter-spacing:8px; border-radius:10px; margin:20px 0;">
+              ${code}
+            </a>
+
+            <p style="margin:20px 0 0 0; font-size:14px; color:#64748b;">
+              ⏰ <strong>Importante:</strong> Este código expirará en <strong>10 minutos</strong>
+            </p>
+            <p style="font-size:14px; color:#0369a1; margin:8px 0;">
+              🔒 No compartas este código con nadie.
+            </p>
+            <p style="font-size:12px; color:#94a3b8; margin-top:20px;">
+              Si no solicitaste este cambio, puedes ignorar este mensaje.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f1f5f9; padding:20px; text-align:center; font-size:12px; color:#64748b;">
+            <p style="margin:0;">¿Necesitas ayuda? Escríbenos a <a href="mailto:soporte@swapply.com" style="color:#3b82f6; text-decoration:none;">soporte@swapply.com</a></p>
+            <p style="margin:4px 0 0 0;">© ${new Date().getFullYear()} Swapply. Todos los derechos reservados.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+    </tr>
+    </table>
+    </body>
+    </html>
     `;
+
     await sendMail({ to: email, subject, html });
 
     return res.json({ ok: true });

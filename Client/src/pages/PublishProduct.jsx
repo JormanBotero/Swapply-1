@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createProduct } from '../services/products';
 import { me } from '../services/auth';
+import { uploadImage } from '../services/upload';
 import './PublishProduct.css';
 
 function PublishProduct() {
@@ -18,7 +19,6 @@ function PublishProduct() {
     location: '',
     images: []
   });
-
 
   const categories = [
     { value: 'electronica', label: 'Electrónica' },
@@ -39,23 +39,15 @@ function PublishProduct() {
     { value: 'necesita_reparacion', label: 'Necesita reparación' }
   ];
 
-  // ESTILOS INLINE GARANTIZADOS
   const inputStyles = {
     color: '#2d3748',
     backgroundColor: '#ffffff',
     border: '2px solid #e2e8f0'
   };
 
-  const placeholderStyles = {
-    color: '#a0aec0'
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleImageUpload = (e) => {
@@ -68,7 +60,6 @@ function PublishProduct() {
     const newImages = [...images, ...files];
     setImages(newImages);
 
-    // Crear URLs para previsualización
     const newUrls = files.map(file => URL.createObjectURL(file));
     setImageUrls(prev => [...prev, ...newUrls]);
   };
@@ -76,17 +67,15 @@ function PublishProduct() {
   const removeImage = (index) => {
     const newImages = [...images];
     const newUrls = [...imageUrls];
-    
     newImages.splice(index, 1);
     newUrls.splice(index, 1);
-    
     setImages(newImages);
     setImageUrls(newUrls);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.description || !formData.category) {
       alert('Por favor completa los campos requeridos');
       return;
@@ -94,17 +83,17 @@ function PublishProduct() {
 
     try {
       setLoading(true);
-      
-      // Primero verificar que el usuario esté autenticado
+
       const user = await me();
       if (!user) {
         navigate('/login', { state: { returnTo: '/products/publish' } });
         return;
       }
 
-      // Aquí deberías subir las imágenes a un servicio como Cloudinary
-      // Por ahora, usaremos URLs de placeholder
-      const uploadedImages = imageUrls; // Reemplazar con URLs reales
+      // Subir imágenes a Cloudinary
+      const uploadedImages = await Promise.all(
+        images.map(image => uploadImage(image))
+      );
 
       const productData = {
         ...formData,
@@ -112,13 +101,13 @@ function PublishProduct() {
       };
 
       const result = await createProduct(productData);
-      
+
       alert('Producto publicado exitosamente!');
       navigate(`/products/${result.id}`);
-      
+
     } catch (error) {
-      console.error('Error publishing product:', error);
-      alert('Error al publicar el producto. Intenta nuevamente.');
+      console.error(error);
+      alert(error.message || 'Error al publicar el producto');
     } finally {
       setLoading(false);
     }
@@ -126,36 +115,6 @@ function PublishProduct() {
 
   return (
     <div className="publish-page">
-      {/* ESTILOS EMERGENTES PARA GARANTIZAR VISIBILIDAD */}
-      <style>{`
-        .publish-container input,
-        .publish-container textarea,
-        .publish-container select {
-          color: #2d3748 !important;
-          background-color: #ffffff !important;
-          -webkit-text-fill-color: #2d3748 !important;
-        }
-        .publish-container input::placeholder,
-        .publish-container textarea::placeholder {
-          color: #a0aec0 !important;
-          -webkit-text-fill-color: #a0aec0 !important;
-          opacity: 1 !important;
-        }
-        .publish-container select option {
-          color: #2d3748 !important;
-          background-color: #ffffff !important;
-        }
-        .price-input .currency {
-          color: #718096 !important;
-        }
-        .char-count {
-          color: #718096 !important;
-        }
-        .input-hint {
-          color: #718096 !important;
-        }
-      `}</style>
-      
       <div className="publish-container">
         <header className="publish-header">
           <h1>Publicar Nuevo Producto</h1>
@@ -163,7 +122,6 @@ function PublishProduct() {
         </header>
 
         <form onSubmit={handleSubmit} className="publish-form">
-          {/* Sección de imágenes */}
           <div className="form-section">
             <h2>Imágenes del producto</h2>
             <p className="section-subtitle">Sube hasta 5 imágenes (la primera será la principal)</p>
@@ -181,13 +139,9 @@ function PublishProduct() {
                 <div className="upload-content">
                   <span className="upload-icon">📷</span>
                   <span className="upload-text">
-                    {images.length === 0 
-                      ? 'Haz clic para subir imágenes' 
-                      : 'Subir más imágenes'}
+                    {images.length === 0 ? 'Haz clic para subir imágenes' : 'Subir más imágenes'}
                   </span>
-                  <span className="upload-hint">
-                    Máximo 5 imágenes • PNG, JPG, GIF
-                  </span>
+                  <span className="upload-hint">Máximo 5 imágenes • PNG, JPG, GIF • 5MB c/u</span>
                 </div>
               </label>
             </div>
@@ -197,33 +151,19 @@ function PublishProduct() {
                 {imageUrls.map((url, index) => (
                   <div key={index} className="image-preview">
                     <img src={url} alt={`Preview ${index + 1}`} />
-                    <button
-                      type="button"
-                      className="remove-image"
-                      onClick={() => removeImage(index)}
-                    >
-                      ×
-                    </button>
-                    {index === 0 && (
-                      <span className="main-label">Principal</span>
-                    )}
+                    <button type="button" className="remove-image" onClick={() => removeImage(index)}>×</button>
+                    {index === 0 && <span className="main-label">Principal</span>}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Información básica */}
+          {/* Información del producto */}
           <div className="form-section">
             <h2>Información del producto</h2>
-            
             <div className="form-group">
-              <label htmlFor="title">
-                Título del producto *
-                <span className="char-count">
-                  {formData.title.length}/60
-                </span>
-              </label>
+              <label htmlFor="title">Título del producto * <span className="char-count">{formData.title.length}/60</span></label>
               <input
                 type="text"
                 id="title"
@@ -238,18 +178,13 @@ function PublishProduct() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="description">
-                Descripción detallada *
-                <span className="char-count">
-                  {formData.description.length}/2000
-                </span>
-              </label>
+              <label htmlFor="description">Descripción detallada * <span className="char-count">{formData.description.length}/2000</span></label>
               <textarea
                 id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Describe tu producto con detalle. Incluye información sobre el estado, accesorios incluidos, razones por las que lo vendes, etc."
+                placeholder="Describe tu producto con detalle..."
                 rows={6}
                 maxLength={2000}
                 required
@@ -260,43 +195,22 @@ function PublishProduct() {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="category">Categoría *</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                  style={inputStyles}
-                >
+                <select id="category" name="category" value={formData.category} onChange={handleInputChange} required style={inputStyles}>
                   <option value="">Selecciona una categoría</option>
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
+                  {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
                 </select>
               </div>
 
               <div className="form-group">
                 <label htmlFor="condition">Condición</label>
-                <select
-                  id="condition"
-                  name="condition"
-                  value={formData.condition}
-                  onChange={handleInputChange}
-                  style={inputStyles}
-                >
-                  {conditions.map(cond => (
-                    <option key={cond.value} value={cond.value}>
-                      {cond.label}
-                    </option>
-                  ))}
+                <select id="condition" name="condition" value={formData.condition} onChange={handleInputChange} style={inputStyles}>
+                  {conditions.map(cond => <option key={cond.value} value={cond.value}>{cond.label}</option>)}
                 </select>
               </div>
             </div>
 
             <div className="form-row">
-            <div className="form-group">
+              <div className="form-group">
                 <label htmlFor="location">Ubicación</label>
                 <input
                   type="text"
@@ -311,29 +225,10 @@ function PublishProduct() {
             </div>
           </div>
 
-          {/* Botones */}
           <div className="form-actions">
-            <button
-              type="button"
-              className="cancel-btn"
-              onClick={() => navigate('/products')}
-            >
-              Cancelar
-            </button>
-            
-            <button
-              type="submit"
-              className="submit-btn"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className="loading-spinner-small"></span>
-                  Publicando...
-                </>
-              ) : (
-                'Publicar Producto'
-              )}
+            <button type="button" className="cancel-btn" onClick={() => navigate('/products')}>Cancelar</button>
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? 'Publicando...' : 'Publicar Producto'}
             </button>
           </div>
         </form>

@@ -10,7 +10,7 @@ import EditProduct from './pages/EditProduct';
 import Chat from './pages/Chat';
 import ChatRoom from './pages/ChatRoom';
 import ProtectedRoute from './components/ProtectedRoute'; // Asegúrate de que existe este archivo
-
+import ForgotPassword from './pages/ForgotPassword'; // Importa el componente
 
 function App() {
   return (
@@ -19,42 +19,38 @@ function App() {
 
       <main className="main-content">
         <Routes>
-          {/* Rutas públicas (acceso sin login) */}
+          {/* Rutas públicas */}
           <Route path="/" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          
-          {/* Rutas protegidas (requieren login) - ENVUELVE CADA UNA CON ProtectedRoute */}
+          <Route path="/recuperar-contrasena" element={<ForgotPassword />} />  {/* <- Agrega esto */}
+
+          {/* Rutas protegidas */}
           <Route path="/products" element={
             <ProtectedRoute>
               <Products />
             </ProtectedRoute>
           } />
-          
           <Route path="/products/publish" element={
             <ProtectedRoute>
               <PublishProduct />
             </ProtectedRoute>
           } />
-          
           <Route path="/products/:id" element={
             <ProtectedRoute>
               <ProductDetail />
             </ProtectedRoute>
           } />
-          
           <Route path="/products/edit/:id" element={
             <ProtectedRoute>
               <EditProduct />
             </ProtectedRoute>
           } />
-          
           <Route path="/chat" element={
             <ProtectedRoute>
               <Chat />
             </ProtectedRoute>
           } />
-          
           <Route path="/chat/:id" element={
             <ProtectedRoute>
               <ChatRoom />

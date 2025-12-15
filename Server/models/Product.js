@@ -6,18 +6,17 @@ export async function createProduct({
   description, 
   category, 
   condition = 'nuevo', 
-  price = 0, 
   images = [], 
   owner_id, 
   location = '', 
   status = 'available' 
 }) {
   const res = await query(
-    `INSERT INTO products 
-     (title, description, category, condition, price, images, owner_id, location, status, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+    `INSERT INTO products
+    (title, description, category, condition, images, owner_id, location, status, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
      RETURNING *`,
-    [title, description, category, condition, price, images, owner_id, location, status]
+    [title, description, category, condition, images, owner_id, location, status]
   );
   return res.rows[0];
 }
@@ -47,15 +46,6 @@ export async function findProducts(filters = {}) {
     values.push(filters.owner_id);
   }
   
-  if (filters.minPrice && filters.minPrice !== '') {
-    sql += ` AND p.price >= $${idx++}`;
-    values.push(parseFloat(filters.minPrice));
-  }
-  
-  if (filters.maxPrice && filters.maxPrice !== '') {
-    sql += ` AND p.price <= $${idx++}`;
-    values.push(parseFloat(filters.maxPrice));
-  }
   
   if (filters.search && filters.search !== '') {
     sql += ` AND (p.title ILIKE $${idx++} OR p.description ILIKE $${idx})`;
@@ -85,7 +75,7 @@ export async function updateProduct(id, updates = {}) {
   const values = [];
   let idx = 1;
 
-  const allowedFields = ['title', 'description', 'category', 'condition', 'price', 'images', 'location', 'status'];
+  const allowedFields = ['title', 'description', 'category', 'condition', 'images', 'location', 'status'];
   
   for (const [key, value] of Object.entries(updates)) {
     if (allowedFields.includes(key)) {

@@ -48,7 +48,6 @@ export const createProduct = async (req, res) => {
     const productData = {
       ...req.body,
       owner_id: userId,
-      price: req.body.price || 0,
       images: req.body.images || [],
       location: req.body.location || '',
       condition: req.body.condition || 'nuevo',
@@ -82,7 +81,7 @@ export const updateProduct = async (req, res) => {
     }
     
     // Campos permitidos para actualizar
-    const allowedUpdates = ['title', 'description', 'category', 'condition', 'price', 'images', 'location', 'status'];
+    const allowedUpdates = ['title', 'description', 'category', 'condition', 'images', 'location', 'status'];
     const updates = {};
     
     for (const key of allowedUpdates) {

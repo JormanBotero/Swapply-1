@@ -1,12 +1,13 @@
-// server/controllers/chat.controller.js
 import * as ConversationModel from '../models/Conversation.js';
 import * as MessageModel from '../models/message.js';
 
-// Obtener todas las conversaciones del usuario
+/**
+ * Obtener todas las conversaciones del usuario autenticado
+ */
 export const getConversations = async (req, res) => {
   try {
-    const userId = 1; // Temporal - reemplazar con autenticación real
-    
+    const userId = req.user.id;
+
     const conversations = await ConversationModel.findUserConversations(userId);
     res.json(conversations);
   } catch (error) {
@@ -15,26 +16,33 @@ export const getConversations = async (req, res) => {
   }
 };
 
-// Obtener mensajes de una conversación específica
+/**
+ * Obtener mensajes de una conversación específica
+ */
 export const getConversationMessages = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = 1; // Temporal
-    
-    // Verificar que el usuario pertenece a la conversación
-    const conversation = await ConversationModel.findConversationById(id);
+    const conversationId = Number(req.params.id);
+    const userId = req.user.id;
+
+    const conversation =
+      await ConversationModel.findConversationById(conversationId);
+
     if (!conversation) {
       return res.status(404).json({ error: 'Conversación no encontrada' });
     }
-    
-    if (conversation.user1_id !== userId && conversation.user2_id !== userId) {
+
+    if (
+      conversation.user1_id !== userId &&
+      conversation.user2_id !== userId
+    ) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    
-    // Marcar mensajes como leídos
-    await MessageModel.markMessagesAsRead(id, userId);
-    
-    const messages = await MessageModel.findMessagesByConversation(id);
+
+    await MessageModel.markMessagesAsRead(conversationId, userId);
+
+    const messages =
+      await MessageModel.findMessagesByConversation(conversationId);
+
     res.json(messages);
   } catch (error) {
     console.error('Error getting messages:', error);
@@ -42,28 +50,34 @@ export const getConversationMessages = async (req, res) => {
   }
 };
 
-// Enviar un mensaje
+/**
+ * Enviar un mensaje
+ */
 export const sendMessage = async (req, res) => {
   try {
     const { conversation_id, content } = req.body;
-    const userId = 1; // Temporal
-    
-    // Verificar que el usuario pertenece a la conversación
-    const conversation = await ConversationModel.findConversationById(conversation_id);
+    const userId = req.user.id;
+
+    const conversation =
+      await ConversationModel.findConversationById(conversation_id);
+
     if (!conversation) {
       return res.status(404).json({ error: 'Conversación no encontrada' });
     }
-    
-    if (conversation.user1_id !== userId && conversation.user2_id !== userId) {
+
+    if (
+      conversation.user1_id !== userId &&
+      conversation.user2_id !== userId
+    ) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    
+
     const message = await MessageModel.createMessage({
       conversation_id,
       sender_id: userId,
       content
     });
-    
+
     res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);

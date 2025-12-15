@@ -15,10 +15,10 @@ function PublishProduct() {
     description: '',
     category: '',
     condition: 'nuevo',
-    price: '',
     location: '',
     images: []
   });
+
 
   const categories = [
     { value: 'electronica', label: 'Electrónica' },
@@ -109,7 +109,6 @@ function PublishProduct() {
       const productData = {
         ...formData,
         images: uploadedImages,
-        price: formData.price ? parseFloat(formData.price) : 0
       };
 
       const result = await createProduct(productData);
@@ -297,28 +296,7 @@ function PublishProduct() {
             </div>
 
             <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="price">Precio ($)</label>
-                <div className="price-input">
-                  <span className="currency">$</span>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    style={inputStyles}
-                  />
-                </div>
-                <p className="input-hint">
-                  Dejar en 0 para intercambio/gratis
-                </p>
-              </div>
-
-              <div className="form-group">
+            <div className="form-group">
                 <label htmlFor="location">Ubicación</label>
                 <input
                   type="text"

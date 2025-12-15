@@ -1,141 +1,108 @@
-// client/src/pages/ChatRoom.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getMessages, sendMessage } from '../services/chat';
-import { getConversations } from '../services/chat';
+import { getMessages, getConversations } from '../services/chat';
 import { me } from '../services/auth';
-import { initSocket, joinChat, leaveChat, sendMessageViaSocket } from '../services/socket';
+import {
+  initSocket,
+  joinChat,
+  leaveChat
+} from '../services/socket';
 import './ChatRoom.css';
 
 function ChatRoom() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [conversation, setConversation] = useState(null);
   const [user, setUser] = useState(null);
-  const [socket, setSocket] = useState(null);
-  
+
+  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // ---------------- INIT ----------------
   useEffect(() => {
-    fetchData();
-    setupSocket();
-    
-    return () => {
-      // Limpiar al desmontar
-      if (socket) {
-        leaveChat(id);
-      }
-    };
+    init();
+    return cleanup;
   }, [id]);
 
+  // ---------------- SCROLL ----------------
   useEffect(() => {
-    // Desplazarse al final cuando hay nuevos mensajes
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const fetchData = async () => {
+  // ---------------- INIT FUNCTION ----------------
+  const init = async () => {
     try {
       setLoading(true);
-      
-      // Obtener usuario actual
+
       const userData = await me();
       setUser(userData);
-      
-      // Obtener todas las conversaciones para encontrar esta
+
       const conversations = await getConversations();
-      const currentConv = conversations.find(c => c.id === parseInt(id));
-      
-      if (!currentConv) {
-        alert('Conversación no encontrada');
+      const conv = conversations.find(c => c.id === Number(id));
+
+      if (!conv) {
         navigate('/chat');
         return;
       }
-      
-      setConversation(currentConv);
-      
-      // Obtener mensajes
-      const messagesData = await getMessages(id);
-      setMessages(messagesData);
-      
-    } catch (error) {
-      console.error('Error fetching chat data:', error);
+
+      setConversation(conv);
+
+      // ---- MENSAJES (deduplicados) ----
+      const msgs = await getMessages(id);
+      const uniqueMessages = Array.from(
+        new Map(msgs.map(m => [m.id, m])).values()
+      );
+      setMessages(uniqueMessages);
+
+      // ---- SOCKET ----
+      const socket = initSocket();
+      socketRef.current = socket;
+
+      joinChat(id);
+
+      socket.on('new-message', (message) => {
+        if (message.conversation_id !== Number(id)) return;
+
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) return prev;
+          return [...prev, message];
+        });
+      });
+
+    } catch (err) {
+      console.error('Chat init error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const setupSocket = () => {
-    const socketInstance = initSocket();
-    setSocket(socketInstance);
-    
-    // Unirse a la sala de chat
-    joinChat(id);
-    
-    // Escuchar nuevos mensajes
-    socketInstance.on('new-message', (message) => {
-      if (message.conversationId === parseInt(id)) {
-        setMessages(prev => [...prev, message]);
-      }
-    });
-    
-    // Escuchar notificaciones
-    socketInstance.on('message-notification', (notification) => {
-      console.log('Nueva notificación:', notification);
-    });
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    
-    if (!newMessage.trim() || !user) return;
-    
-    const messageContent = newMessage.trim();
-    setNewMessage('');
-    
-    // Mensaje optimista (se muestra inmediatamente)
-    const tempMessage = {
-      id: Date.now(),
-      conversation_id: parseInt(id),
-      sender_id: user.id,
-      sender_name: user.nombre,
-      sender_picture: user.picture,
-      content: messageContent,
-      created_at: new Date().toISOString(),
-      read: false
-    };
-    
-    setMessages(prev => [...prev, tempMessage]);
-    setSending(true);
-    
-    try {
-      // Enviar a través de WebSocket (tiempo real)
-      const socketSent = sendMessageViaSocket({
-        conversationId: id,
-        senderId: user.id,
-        content: messageContent
-      });
-      
-      // También enviar a la API REST para persistencia
-      if (!socketSent) {
-        await sendMessage(id, messageContent);
-      }
-      
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Podrías mostrar un error al usuario aquí
-    } finally {
-      setSending(false);
-      inputRef.current?.focus();
+  // ---------------- CLEANUP ----------------
+  const cleanup = () => {
+    if (socketRef.current) {
+      leaveChat(id);
+      socketRef.current.off('new-message');
     }
+  };
+
+  // ---------------- SEND MESSAGE ----------------
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+
+    if (!newMessage.trim() || !socketRef.current) return;
+
+    socketRef.current.emit('send-message', {
+      conversationId: Number(id),
+      content: newMessage.trim()
+    });
+
+    setNewMessage('');
+    inputRef.current?.focus();
   };
 
   const handleKeyPress = (e) => {
@@ -145,6 +112,7 @@ function ChatRoom() {
     }
   };
 
+  // ---------------- UI ----------------
   if (loading) {
     return (
       <div className="chat-room-page">
@@ -163,13 +131,13 @@ function ChatRoom() {
         <Link to="/chat" className="back-button">
           ←
         </Link>
-        
+
         <div className="chat-partner-info">
           <div className="partner-avatar">
             {conversation?.other_user_picture ? (
-              <img 
-                src={conversation.other_user_picture} 
-                alt={conversation.other_user_name} 
+              <img
+                src={conversation.other_user_picture}
+                alt={conversation.other_user_name}
               />
             ) : (
               <div className="avatar-placeholder">
@@ -177,7 +145,7 @@ function ChatRoom() {
               </div>
             )}
           </div>
-          
+
           <div className="partner-details">
             <h2>{conversation?.other_user_name || 'Usuario'}</h2>
             {conversation?.product_title && (
@@ -187,9 +155,9 @@ function ChatRoom() {
             )}
           </div>
         </div>
-        
+
         {conversation?.product_id && (
-          <Link 
+          <Link
             to={`/products/${conversation.product_id}`}
             className="view-product-btn"
           >
@@ -211,18 +179,22 @@ function ChatRoom() {
           <div className="messages-list">
             {messages.map((message, index) => {
               const isOwn = message.sender_id === user?.id;
-              const showAvatar = index === 0 || 
+              const showAvatar =
+                index === 0 ||
                 messages[index - 1]?.sender_id !== message.sender_id;
-              
+
               return (
-                <div 
-                  key={message.id} 
+                <div
+                  key={message.id}
                   className={`message-wrapper ${isOwn ? 'own' : 'other'}`}
                 >
                   {!isOwn && showAvatar && (
                     <div className="message-avatar">
                       {message.sender_picture ? (
-                        <img src={message.sender_picture} alt={message.sender_name} />
+                        <img
+                          src={message.sender_picture}
+                          alt={message.sender_name}
+                        />
                       ) : (
                         <div className="avatar-small">
                           {message.sender_name?.charAt(0)}
@@ -230,12 +202,14 @@ function ChatRoom() {
                       )}
                     </div>
                   )}
-                  
+
                   <div className="message-bubble-container">
                     {!isOwn && showAvatar && (
-                      <div className="sender-name">{message.sender_name}</div>
+                      <div className="sender-name">
+                        {message.sender_name}
+                      </div>
                     )}
-                    
+
                     <div className={`message-bubble ${isOwn ? 'own' : 'other'}`}>
                       <p>{message.content}</p>
                       <span className="message-time">
@@ -264,23 +238,18 @@ function ChatRoom() {
             onKeyPress={handleKeyPress}
             placeholder="Escribe un mensaje..."
             rows="1"
-            disabled={sending}
             className="message-input"
           />
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             className="send-button"
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim()}
           >
-            {sending ? (
-              <div className="send-spinner"></div>
-            ) : (
-              'Enviar'
-            )}
+            Enviar
           </button>
         </div>
-        
+
         <div className="input-hint">
           Presiona Enter para enviar, Shift+Enter para nueva línea
         </div>

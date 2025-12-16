@@ -1,4 +1,3 @@
-// server/index.js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -14,22 +13,69 @@ import chatRoutes from './routes/chat.routes.js';
 import * as ConversationModel from './models/Conversation.js';
 import * as MessageModel from './models/message.js';
 
+import { checkConnection } from './config/db.js';
+
 const app = express();
+
+/**
+ * =====================================================
+ *  CABECERAS COOP/COEP
+ * =====================================================
+ */
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
+});
 
 /**
  * =====================================================
  *  CRÍTICO PARA PRODUCCIÓN (Render / HTTPS / Cookies)
  * =====================================================
  */
-app.set('trust proxy', 1); // ← SIN ESTO, LAS COOKIES SECURE NO FUNCIONAN
+app.set('trust proxy', 1); // necesario para cookies secure en HTTPS
 
-const httpServer = createServer(app);
+/**
+ * =====================================================
+ *  EXPRESS MIDDLEWARES
+ * =====================================================
+ */
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN,
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
+app.use(cookieParser());
+
+/**
+ * =====================================================
+ *  VALIDAR CONEXIÓN A LA BASE DE DATOS
+ * =====================================================
+ */
+await checkConnection();
+
+/**
+ * =====================================================
+ *  ROUTES
+ * =====================================================
+ */
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/chat', chatRoutes);
+
+app.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
 
 /**
  * =====================================================
  *  SOCKET.IO CONFIGURADO CON AUTENTICACIÓN POR COOKIE
  * =====================================================
  */
+const httpServer = createServer(app);
+
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.CLIENT_ORIGIN,
@@ -41,18 +87,11 @@ const io = new Server(httpServer, {
 io.use((socket, next) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie;
-    if (!cookieHeader) {
-      return next(new Error('No cookies sent'));
-    }
+    if (!cookieHeader) return next(new Error('No cookies sent'));
 
-    const cookies = Object.fromEntries(
-      cookieHeader.split('; ').map(c => c.split('='))
-    );
-
+    const cookies = Object.fromEntries(cookieHeader.split('; ').map(c => c.split('=')));
     const token = cookies.swapply_token;
-    if (!token) {
-      return next(new Error('No token in cookies'));
-    }
+    if (!token) return next(new Error('No token in cookies'));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.sub;
@@ -67,17 +106,12 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('Usuario conectado (socket):', socket.userId);
 
-  // Sala personal
   socket.join(`user_${socket.userId}`);
 
   socket.on('join-chat', async (conversationId) => {
     const convo = await ConversationModel.findConversationById(conversationId);
     if (!convo) return;
-
-    if (
-      convo.user1_id !== socket.userId &&
-      convo.user2_id !== socket.userId
-    ) return;
+    if (convo.user1_id !== socket.userId && convo.user2_id !== socket.userId) return;
 
     socket.join(`chat_${conversationId}`);
   });
@@ -89,11 +123,7 @@ io.on('connection', (socket) => {
   socket.on('send-message', async ({ conversationId, content }) => {
     const convo = await ConversationModel.findConversationById(conversationId);
     if (!convo) return;
-
-    if (
-      convo.user1_id !== socket.userId &&
-      convo.user2_id !== socket.userId
-    ) return;
+    if (convo.user1_id !== socket.userId && convo.user2_id !== socket.userId) return;
 
     const message = await MessageModel.createMessage({
       conversation_id: conversationId,
@@ -114,33 +144,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Socket desconectado:', socket.userId);
   });
-});
-
-/**
- * =====================================================
- *  EXPRESS MIDDLEWARES
- * =====================================================
- */
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN,
-  credentials: true,
-}));
-
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ limit: '15mb', extended: true }));
-app.use(cookieParser());
-
-/**
- * =====================================================
- *  ROUTES
- * =====================================================
- */
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/chat', chatRoutes);
-
-app.get('/health', (_req, res) => {
-  res.json({ ok: true });
 });
 
 /**
